@@ -1,0 +1,4164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coolleo Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%2318181b%22/><circle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22none%22 stroke=%22%23fafafa%22 stroke-width=%223%22 stroke-dasharray=%2237 13%22/></svg>">
+<style>
+  :root{
+    --background:#ffffff; --foreground:#09090b;
+    --primary:#18181b; --primary-foreground:#fafafa;
+    --secondary:#f4f4f5; --muted:#f4f4f5;
+    --muted-foreground:#71717b; --accent:#f4f4f5; --accent-foreground:#18181b;
+    --border:#e4e4e7; --input:#e4e4e7; --ring:#9f9fa9;
+    --destructive:#dc2626; --ok:#059669; --warn:#d97706;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;height:100%;background:var(--background);color:var(--foreground);
+    font:13px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+
+  .app{height:100%;overflow:hidden;padding-bottom:96px;}
+  .page{display:none;height:100%;overflow:auto;padding:20px}
+  .page.active{display:flex;gap:16px}
+  .page.active.center{justify-content:center;align-items:flex-start}
+
+  .col{display:flex;flex-direction:column;gap:16px;min-height:0;min-width:0}
+  .panel{background:var(--muted);border-radius:20px;padding:16px;min-height:0;min-width:0}
+  .panel.grow{flex:1 1 auto;overflow:auto}
+
+  h3{margin:0 0 12px;font-size:11px;font-weight:500;letter-spacing:.02em;
+     color:var(--muted-foreground);display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  h3 span{font-size:10.5px;font-weight:400;opacity:.75}
+  h2{margin:0 0 4px;font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .sub{color:var(--muted-foreground);font-size:12px;margin-bottom:16px}
+
+  button{
+    display:inline-flex;align-items:center;justify-content:center;
+    height:32px;padding:0 13px;border-radius:9999px;
+    border:1px solid var(--border);background:transparent;color:var(--foreground);
+    font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;
+    transition:background-color .15s,border-color .15s,color .15s,opacity .15s;
+  }
+  button:hover{background:var(--accent);color:var(--accent-foreground)}
+  button:active{opacity:.85}
+  button.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+  button.primary:hover{background:var(--primary);opacity:.9;color:var(--primary-foreground)}
+  button.ghost{height:28px;padding:0 10px;font-size:12px}
+
+  .btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:9px;min-width:0}
+  .row label{width:58px;flex-shrink:0;font-size:11.5px;color:var(--muted-foreground)}
+
+  input,select{
+    flex:1 1 auto;min-width:0;height:34px;padding:0 11px;border-radius:14px;
+    border:1px solid var(--input);background:transparent;color:var(--foreground);
+    font-size:12.5px;font-family:inherit;transition:border-color .15s,box-shadow .15s;
+  }
+  input:hover,select:hover{border-color:var(--ring)}
+  input:focus,select:focus{outline:none;border-color:var(--ring);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent)}
+  input[type=color]{width:44px;flex:none;padding:2px;cursor:pointer;border-radius:12px}
+  input[type=number]{font-variant-numeric:tabular-nums}
+
+  .kv{font-size:12px;margin:5px 0;color:var(--muted-foreground);
+      display:flex;justify-content:space-between;gap:8px;min-width:0}
+  .kv b{color:var(--foreground);font-weight:500}
+  .hint{font-size:11px;line-height:1.6;color:var(--muted-foreground);padding:4px 0}
+  .hint.ok{color:var(--ok)} .hint.bad{color:var(--destructive)}
+  .stat{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:11px;color:var(--muted-foreground)}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;
+    border-radius:9999px;font-size:10.5px;font-weight:500}
+  .badge.on{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .badge.off{background:color-mix(in srgb,var(--destructive) 14%,transparent);color:var(--destructive)}
+  .badge.on::before,.badge.off::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+
+  .canvas-wrap{position:relative;display:flex;justify-content:center;align-items:center;
+    padding:14px;background:var(--background);border-radius:16px;min-height:0}
+  .sel-box{position:absolute;pointer-events:none;
+    border:1.5px solid rgba(255,255,255,.92);
+    border-radius:4px;
+    /* 内外双线，黑白背景都能看清 */
+    box-shadow:0 0 0 1px rgba(0,0,0,.65), inset 0 0 0 1px rgba(0,0,0,.45)}
+  .sel-box .handle{position:absolute;right:-6px;bottom:-6px;width:12px;height:12px;
+    background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.55);
+    border-radius:3px;
+    /* 关键：事件穿透到 canvas，由 canvas 的 nearHandle 判断接管 */
+    pointer-events:none;}
+  .guide{position:absolute;pointer-events:none;background:var(--destructive);opacity:.9}
+  .guide.v{width:1px;top:0;bottom:0}
+  .guide.h{height:1px;left:0;right:0}
+
+  .grid-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;
+    color:var(--muted-foreground);cursor:pointer}
+  .grid-toggle input{width:auto;height:auto;flex:none}
+
+  .palette{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .palette button{height:38px;background:var(--background);border-color:var(--border);font-size:12px}
+
+  .layer{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:8px 10px;margin-bottom:4px;border-radius:12px;font-size:12.5px;
+    cursor:pointer;border:1px solid transparent;min-width:0;
+    transition:background-color .15s,border-color .15s}
+  .layer:hover{background:var(--background)}
+  .layer.sel{background:var(--background);border-color:var(--ring);font-weight:500}
+  .layer.dragging{opacity:.4}
+  .layer.drop-target{border-color:var(--primary);border-style:dashed}
+  .layer .lid{font-size:10px;color:var(--muted-foreground);font-family:ui-monospace,monospace;flex-shrink:0}
+  .layer .lnm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .log{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:11.5px;line-height:1.75;
+    overflow:auto;background:var(--background);border:1px solid var(--border);
+    border-radius:14px;padding:10px 12px;height:132px;color:var(--muted-foreground)}
+  .log div{padding:1px 0;word-break:break-all}
+
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:1px}
+  .metric-grid .kv{padding:6px 9px;margin:0;border-radius:10px;
+    font-family:ui-monospace,Consolas,monospace;font-size:11.5px;transition:background-color .15s}
+  .metric-grid .kv:hover{background:var(--background)}
+
+  /* ===== Dock ===== */
+  .dock{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:4px;padding:6px;
+    background:color-mix(in srgb, var(--muted) 84%, transparent);
+    backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+    border:1px solid var(--border);border-radius:22px;
+    box-shadow:0 10px 40px rgba(0,0,0,.28);z-index:60}
+  .dock-item{position:relative;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;width:64px;height:52px;padding:0;border:none;
+    border-radius:16px;background:transparent;color:var(--muted-foreground);cursor:pointer;
+    transition:background-color .18s,color .18s,transform .18s}
+  .dock-item svg{width:17px;height:17px;stroke-width:1.9}
+  .dock-item span{font-size:10px;letter-spacing:.02em}
+  .dock-item:hover{background:var(--accent);color:var(--accent-foreground);transform:translateY(-2px)}
+  .dock-item.active{background:var(--primary);color:var(--primary-foreground)}
+  .dock-item.active:hover{background:var(--primary);color:var(--primary-foreground)}
+  .dock-divider{width:1px;height:26px;background:var(--border);margin:0 2px}
+
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ring)}
+
+  button.is-busy{pointer-events:none;opacity:.62}
+  button.is-busy::after{content:'';display:inline-block;width:11px;height:11px;margin-left:7px;
+    border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+    animation:coolleo-spin .65s linear infinite;vertical-align:-1px;flex-shrink:0}
+  @keyframes coolleo-spin{to{transform:rotate(360deg)}}
+
+  button:disabled,button:disabled:hover,button:disabled:active,button:disabled:focus{
+    background:transparent;color:var(--muted-foreground);border-color:var(--border);
+    opacity:.42;cursor:not-allowed;transform:none;box-shadow:none;pointer-events:auto}
+  button.primary:disabled,button.primary:disabled:hover{
+    background:var(--primary);color:var(--primary-foreground);border-color:transparent;opacity:.38}
+  .palette button:disabled,.palette button:disabled:hover{background:var(--background);border-color:var(--border)}
+  button.is-busy:disabled,button.is-busy:disabled:hover{opacity:.62;cursor:default}
+
+  #layers:empty::after{content:'暂无图层，从左侧添加控件';display:block;padding:26px 10px;
+    text-align:center;font-size:11.5px;color:var(--muted-foreground);
+    border:1px dashed var(--border);border-radius:14px}
+  #props > .hint:only-child{display:block;padding:26px 10px;text-align:center;
+    border:1px dashed var(--border);border-radius:14px}
+  /* 右栏：吃掉剩余宽度，预览放大并居中 */
+  /* 主题库：内容撑满，空状态垂直居中 */
+  /* 主题库所在 panel 改成 flex 列，内部才能撑开 */
+  /* 画布面板：内容垂直居中，减少下方空白 */
+  /* ===== 响应式 ===== */
+  
+  /* ===================== 布局 ===================== */
+  /* 四列：控件区 | 属性 | 画布 | 预览+主题库 */
+  .left{min-width:0}
+  .props-col{min-width:0}
+  .mid{flex:1 1 auto;min-width:0}
+  .right{width:288px;flex:0 0 288px}
+
+  .left .panel{flex-shrink:0}
+  .left .panel.grow{flex:1 1 auto;overflow:auto;min-height:0}
+  #layers{overflow:auto}
+
+  .props-col .panel{flex:1 1 auto;overflow:auto;min-height:0}
+
+  /* 中栏：画布按内容高度，主题库吃掉剩余 */
+  .mid .panel{flex:0 0 auto;display:flex;flex-direction:column;min-height:0}
+  .mid .panel.grow{flex:1 1 auto;overflow:auto;min-height:160px}
+  .mid .canvas-wrap{flex:0 0 auto}
+  .mid .panel.grow{flex:1 1 auto;overflow:auto;min-height:120px;display:flex;flex-direction:column}
+
+  .right .panel.grow{flex:1 1 auto;overflow:auto;min-height:0}
+  .right #previewPanel{display:flex;flex-direction:column}
+  .right #previewPanel .device-frame{flex:1 1 auto;display:flex;align-items:center;justify-content:center}
+  .right #previewPanel .preview-meta{flex-shrink:0}
+
+  #themeLib{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:auto;max-height:none}
+  #themeLib .lib-empty{margin:auto}
+  #themeLib .lib-item{flex-shrink:0}
+
+  /* ===================== 响应式 ===================== */
+  @media (max-width:1400px){
+    
+    
+    .right{width:256px;flex:0 0 256px}
+    .page{padding:14px}
+    #previewCv{width:170px;height:227px}
+  }
+  @media (max-width:1200px){
+    
+    
+    .right{width:232px;flex:0 0 232px}
+    #previewCv{width:152px;height:203px}
+  }
+
+  /* 图层上方的操作按钮组 */
+  /* ---- 属性面板增强 ---- */
+  .prop-sec{margin:12px 0 4px;padding-top:9px;border-top:1px solid var(--border);
+    font-size:10.5px;color:var(--muted-foreground);letter-spacing:.04em}
+  .font-row{display:flex;gap:6px;flex:1;min-width:0;align-items:center}
+  .font-row select{flex:1;min-width:0}
+  .font-row input[type=number]{width:54px;flex:0 0 auto}
+  .font-row button.toggle{flex:0 0 auto;width:26px;height:26px;padding:0;
+    font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+  .font-row button.toggle.on{background:var(--primary);color:var(--primary-foreground);
+    border-color:transparent}
+  .btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1;min-width:0}
+  .btn-grid button{padding:4px 0;font-size:11.5px;text-align:center}
+
+  .layer-tools{display:flex;gap:6px;margin-bottom:6px;flex-shrink:0}
+  .layer-tools .mini{display:inline-flex;align-items:center;gap:5px;font-size:11px;
+    color:var(--muted-foreground);flex:1;min-width:0;white-space:nowrap}
+  .layer-tools .mini input[type=number]{width:46px;padding:2px 4px;font-size:11px;
+    height:24px;flex:0 0 auto}
+  .layer-tools .mini input[type=checkbox]{margin:0;accent-color:var(--primary)}
+  .layer-tools button{flex:1 1 0;height:30px;padding:0 4px;font-size:11.5px;min-width:0}
+  .layer-tools .hint{margin:0}
+  .left #selHint{padding:0 0 6px;flex-shrink:0}
+
+  /* ===== 三列改回四列：中栏收窄 + 右侧占位 ===== */
+  .mid{flex:0 0 452px;max-width:452px;min-width:0}
+  .right{flex:1 1 auto;min-width:280px}
+  /* 占位容器 */
+  .placeholder{display:flex;flex-direction:column}
+  .placeholder-body{
+    flex:1 1 auto;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;
+    border:1px dashed var(--border);border-radius:14px;
+    color:var(--muted-foreground);font-size:12px;padding:20px;
+  }
+  .ph-icon{font-size:28px;opacity:.35;line-height:1}
+  .ph-sub{font-size:10.5px;opacity:.6}
+
+  /* ===== 编辑页：上层四列 + 下层主题库横跨 ===== */
+  #page-editor.active{
+    display:grid;
+    grid-template-columns:400px 400px minmax(0,1fr);
+    gap:16px;
+    padding:20px;
+    align-items:stretch;
+  }
+  .editor-row{display:flex;gap:16px;flex:1 1 auto;min-height:0;min-width:0}
+  .editor-bottom{flex:0 0 auto;max-height:200px;overflow:auto;display:flex;flex-direction:column}
+
+  /* 画布显示尺寸：容器收窄但仍够看清 */
+  /* ===== 编辑页：左栏/属性贯穿全高，右侧上下分 ===== */
+  #page-editor.active{
+    display:grid;
+    grid-template-columns:236px 236px minmax(0,1fr);
+    gap:16px;
+    padding:20px;
+    align-items:stretch;
+  }
+  #page-editor .left{grid-column:1;min-width:0}
+  #page-editor .props-col{grid-column:2;min-width:0}
+
+  /* 右侧：上（画布+占位） 下（主题库） */
+  .editor-main{
+    grid-column:3;display:flex;flex-direction:column;gap:14px;
+    min-height:0;min-width:0;
+  }
+  /* 上半：画布与占位各占一半，等高（高度由画布内容决定） */
+  .editor-row{
+    display:flex;gap:16px;flex:0 0 auto;min-width:0;align-items:stretch;
+  }
+  .editor-row .mid{flex:0 0 460px;max-width:460px;min-width:0}
+  .editor-row .right{flex:1 1 auto;min-width:240px}
+
+  /* 下半：全部给主题库 */
+  .editor-bottom{
+    flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+    overflow:hidden;max-height:none;
+  }
+  .editor-bottom #themeLib{overflow:auto;min-height:0;flex:1 1 auto}
+
+  /* 画布尺寸 */
+
+  /* 画布：360 宽（= 原 300 的 120%），4:3 比例高 270 */
+  #cv{
+    display:block;background:#000;border-radius:12px;
+    border:1px solid var(--border);
+    width:100%;max-width:400px;height:auto;aspect-ratio:4/3;
+    touch-action:none;cursor:default;
+  }
+
+  @media (max-width:1400px){
+    
+    .editor-row .mid{flex:0 0 380px;max-width:380px}
+    #cv{max-width:330px}
+    #previewCv{width:170px;height:227px}
+  }
+  @media (max-width:1200px){
+    
+    .editor-row .mid{flex:0 0 340px;max-width:340px}
+    #cv{max-width:290px}
+  }
+
+  /* ===== 列宽断点（大屏 400，小屏递减） ===== */
+  @media (min-width:1600px){
+    #page-editor.active{grid-template-columns:400px 400px minmax(0,1fr)}
+  }
+  @media (min-width:1400px) and (max-width:1599px){
+    #page-editor.active{grid-template-columns:300px 300px minmax(0,1fr)}
+  }
+  @media (max-width:1400px){
+    #page-editor.active{grid-template-columns:240px 240px minmax(0,1fr)}
+    .editor-row .mid{flex:0 0 380px;max-width:380px}
+    #cv{max-width:330px}
+  }
+  @media (max-width:1200px){
+    #page-editor.active{grid-template-columns:210px 210px minmax(0,1fr)}
+    .editor-row .mid{flex:0 0 340px;max-width:340px}
+    #cv{max-width:290px}
+  }
+
+  /* 从网址导入 */
+  .url-import{
+    display:flex;gap:8px;margin:0 0 14px;padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .url-import input{flex:1 1 auto;min-width:0}
+  .url-import button{flex:0 0 auto;white-space:nowrap}
+
+  /* ===================== 媒体导入弹窗 ===================== */
+  .modal-mask{
+    position:fixed;inset:0;z-index:200;
+    display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.55);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    padding:24px;
+    overflow:auto;
+  }
+  .modal-mask.show{display:flex}
+
+  .modal{
+    width:min(560px,100%);
+    max-height:min(86vh,860px);
+    overflow:auto;
+    background:var(--card,var(--background));
+    color:var(--card-foreground,var(--foreground));
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px 22px 18px;
+    box-shadow:0 24px 64px rgba(0,0,0,.42);
+    animation:modalIn .16s ease-out;
+  }
+  @keyframes modalIn{
+    from{opacity:0;transform:translateY(8px) scale(.985)}
+    to{opacity:1;transform:none}
+  }
+  .modal h3{margin:0 0 4px;font-size:15px;font-weight:600}
+  .modal .sub{font-size:11.5px;color:var(--muted-foreground);margin-bottom:14px;line-height:1.5}
+
+  .media-stage{
+    display:flex;align-items:center;justify-content:center;
+    background:#0a0a0b;border:1px solid var(--border);border-radius:12px;
+    padding:12px;min-height:190px;max-height:320px;overflow:hidden;
+  }
+  .media-stage canvas{
+    display:block;max-width:100%;max-height:296px;
+    border-radius:8px;background:#000;
+    image-rendering:auto;
+    /* 白边：明确标出输出范围 */
+    border:1.5px solid rgba(255,255,255,.85);
+    box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 0 14px rgba(255,255,255,.12);
+  }
+
+  .media-info{
+    margin-top:10px;font-size:11.5px;line-height:1.55;
+    color:var(--muted-foreground);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .slider-row{
+    display:flex;align-items:center;gap:10px;margin-top:12px;
+  }
+  .slider-row label{
+    width:58px;flex-shrink:0;font-size:11.5px;color:var(--muted-foreground);
+  }
+  .slider-row input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--primary)}
+  .slider-row .val{
+    width:38px;flex-shrink:0;text-align:right;font-size:11.5px;
+    color:var(--foreground);font-variant-numeric:tabular-nums;
+  }
+
+  .media-actions{
+    display:flex;justify-content:flex-end;gap:10px;
+    margin-top:18px;padding-top:16px;
+    border-top:1px solid var(--border);
+  }
+  .media-actions button{min-width:88px}
+
+  /* 图片控件的选中框：额外加虚线，和普通控件区分 */
+  .sel-box.img-sel{
+    border-style:solid;
+    outline:1px dashed rgba(255,255,255,.55);
+    outline-offset:2px;
+  }
+
+  /* 主题库工具栏：左 名称+保存，右 分类表项 */
+  .lib-toolbar{
+    display:flex;gap:8px;margin-bottom:8px;flex-shrink:0;align-items:center;
+    border-bottom:1px solid var(--border);min-width:0;
+  }
+  .lib-toolbar input{
+    flex:0 0 auto;width:120px;height:25px;font-size:11px;padding:0 7px;
+  }
+  .lib-toolbar > button{
+    flex:0 0 auto;height:25px;padding:0 11px;font-size:11px;
+  }
+
+  /* 分类：横向表项，靠右，可横向滚动 */
+  .lib-cats{
+    display:flex;gap:0;
+    flex:1 1 auto;margin-left:auto;justify-content:flex-end;
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    align-self:flex-end;min-width:0;
+  }
+  .lib-cats::-webkit-scrollbar{display:none}
+  .lib-cats button{
+    flex:0 0 auto;
+    height:26px;padding:0 9px;
+    font-size:11px;line-height:1;
+    background:transparent;border:none;border-radius:0;
+    border-bottom:2px solid transparent;
+    color:var(--muted-foreground);
+    cursor:pointer;white-space:nowrap;
+    transition:color .12s,border-color .12s;
+  }
+  .lib-cats button:hover{color:var(--foreground);background:transparent}
+  .lib-cats button.active{
+    color:var(--foreground);font-weight:600;
+    border-bottom-color:var(--primary);
+  }
+
+  /* 新增分类按钮 */
+  .lib-addcat{
+    flex:0 0 auto;width:26px;height:26px;padding:0;
+    font-size:14px;line-height:1;align-self:flex-end;
+  }
+
+  /* 卡片：横向排列，一行多个 */
+  #themeLib{
+    display:flex;
+    flex-direction:row;          /* 关键：覆盖历史遗留的 column */
+    flex-wrap:wrap;
+    gap:10px;
+    align-content:flex-start;
+    flex:1 1 auto;
+    overflow-y:auto;overflow-x:hidden;
+    min-height:0;padding-bottom:4px;
+  }
+  .lib-item{
+    display:flex;flex-direction:column;gap:5px;
+    width:150px;flex:0 0 auto;
+    padding:8px;border:1px solid var(--border);border-radius:10px;
+    background:var(--card,transparent);overflow:hidden;
+    transition:border-color .12s,background .12s;
+  }
+  .lib-item:hover{border-color:var(--ring);background:var(--accent)}
+  .lib-item .thumb{
+    width:100%;height:84px;border-radius:6px;overflow:hidden;
+    background:#0a0a0b;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+  }
+  .lib-item .thumb img{width:100%;height:100%;object-fit:contain;display:block}
+  .lib-item .thumb .ph{font-size:10px;color:var(--muted-foreground)}
+  .lib-item .nm{
+    font-size:11px;font-weight:500;line-height:1.25;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    cursor:pointer;flex-shrink:0;
+  }
+  .lib-item .dt{font-size:9.5px;color:var(--muted-foreground);line-height:1.1;flex-shrink:0}
+  .lib-item .cat{
+    display:inline-block;font-size:8.5px;padding:0 5px;border-radius:99px;
+    background:var(--accent);color:var(--muted-foreground);
+    margin-left:3px;vertical-align:middle;
+  }
+  .lib-item .act{display:flex;gap:5px;flex-wrap:nowrap;margin-top:2px;flex-shrink:0}
+  .lib-item .act button{
+    flex:1 1 0;height:22px;padding:0;font-size:10.5px;min-width:0;
+    white-space:nowrap;overflow:hidden;
+  }
+
+/* ---- 锁/隐 小开关 ---- */
+.lbtn{flex:0 0 auto;width:20px;height:18px;padding:0;font-size:10px;line-height:16px;
+      border:1px solid var(--border);background:transparent;color:var(--muted-foreground);
+      border-radius:4px;cursor:pointer}
+.lbtn:hover{background:var(--accent);color:var(--accent-foreground)}
+.lbtn.on{background:#f59e0b;border-color:#f59e0b;color:#000}
+/* ---- 右键菜单 ---- */
+.ctxmenu{position:fixed;z-index:9999;min-width:132px;padding:4px;
+         background:var(--popover,#fff);border:1px solid var(--border);border-radius:8px;
+         box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:1px}
+.ctxmenu button{all:unset;display:block;padding:6px 10px;font-size:12px;border-radius:5px;
+                cursor:pointer;color:var(--foreground);white-space:nowrap}
+.ctxmenu button:hover{background:var(--accent);color:var(--accent-foreground)}
+.ctxmenu button.danger{color:#ef4444}
+.ctxmenu button.danger:hover{background:#ef4444;color:#fff}
+.ctxmenu .sep{height:1px;background:var(--border);margin:3px 2px}
+/* ---- 属性面板复选行 ---- */
+.chk-row{display:flex;align-items:center;gap:6px;font-size:12px;margin:3px 0;
+         color:var(--foreground);cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- 首页 -->
+  <section id="page-home" class="page active center">
+    <div class="col" style="width:100%;max-width:960px">
+      <div class="panel">
+        <h2>Coolleo Studio</h2>
+        <div class="sub">散热器屏幕控制台 · 320 × 240</div>
+        <div class="kv" style="margin-bottom:10px">
+          <span>设备状态</span>
+          <span><b id="st">未连接</b> <span id="badge" class="badge off">OFF</span></span>
+        </div>
+        <div id="stats" class="kv stat"></div>
+        <div class="btn-row">
+          <button id="btnConn" class="primary">连接设备</button>
+          <button id="btnDisc">断开</button>
+          <button id="btnRefresh">刷新状态</button>
+        </div>
+        <div class="btn-row">
+          <button id="btnPush" class="primary">开始推送到屏幕</button>
+          <button id="btnOnce">渲染一帧</button>
+        </div>
+        <div class="hint" id="homeHint">正在推送内置仪表盘</div>
+      </div>
+
+      <div class="panel">
+        <h3>系统指标</h3>
+        <div id="metrics" class="metric-grid stat"></div>
+      </div>
+
+      <div class="panel">
+        <h3>日志</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 主题编辑 -->
+  <section id="page-editor" class="page">
+    
+    <aside class="col left">
+      <section class="panel">
+        <h3>模板 <span>一键套用</span></h3>
+        <div id="tplList" class="tpl-list"></div>
+</section>
+            <section class="panel">
+        <h3>控件库</h3>
+        <div id="palette" class="palette"></div>
+      </section>
+      <section class="panel grow">
+        <h3>图层 <span>拖动排序</span></h3>
+        <div class="layer-tools">
+          <button id="btnUndo" class="ghost" title="撤销 Ctrl+Z">↶ 撤销</button>
+          <button id="btnRedo" class="ghost" title="重做 Ctrl+Y">↷ 重做</button>
+          <button id="btnDup"  class="ghost" title="复制 Ctrl+D">⧉ 复制</button>
+          <button id="btnDel"  class="ghost" title="删除 Delete">✕ 删除</button>
+        </div>
+        <div class="layer-tools">
+          <label class="mini" title="拖动/缩放时吸附的网格大小，0 = 不吸附">
+            <span>网格</span><input id="snapSize" type="number" min="0" max="40" step="1" value="8">
+          </label>
+          <label class="mini" title="数值变化时做缓动，观感更顺滑">
+            <input id="smoothOn" type="checkbox" checked><span>平滑</span>
+          </label>
+        </div>
+        <div class="hint" id="leaderHint" style="display:none;color:var(--warn)"></div>
+        <div class="hint" id="selHint">未选中 · 框选或 Shift 点选可多选</div>
+        <div id="layers"></div>
+      </section>
+    </aside>
+
+    <aside class="col props-col">
+      <section class="panel">
+      <h3>属性</h3>
+      <div id="props"><div class="hint">未选中控件</div></div>
+      </section>
+    </aside>
+
+    <div class="editor-main">
+      <div class="editor-row">
+      <main class="col mid">
+      <section class="panel" style="display:flex;flex-direction:column">
+        <h3>画布 <span id="stat" class="stat"></span></h3>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="cv" width="320" height="240"></canvas>
+        </div>
+      </section>
+      </main>
+
+      <aside class="col right">
+        <section class="panel grow placeholder">
+          <h3>待定区 <span>占位</span></h3>
+          <div class="placeholder-body">
+            <div class="ph-icon">＋</div>
+            <div>这块先空着</div>
+            <div class="ph-sub">想到放什么再说</div>
+          </div>
+        </section>
+      </aside>
+      </div>
+      <section class="panel editor-bottom">
+        <h3>主题库 <span>已保存的主题</span></h3>
+        <div class="lib-toolbar">
+          <input id="themeName" type="text" placeholder="主题名称">
+          <button id="btnSaveTheme" class="primary" title="保存当前主题">保存</button>
+          <div class="lib-cats" id="themeCategory" role="tablist"></div>
+          <button id="btnAddCat" class="ghost lib-addcat" title="新增分类">＋</button>
+          <button id="btnExportTheme" class="ghost lib-addcat" title="把当前主题导出成 JSON 文件">导出</button>
+          <button id="btnImportTheme" class="ghost lib-addcat" title="从 JSON 文件导入主题">导入</button>
+          <input id="themeFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <div id="themeLib" class="lib-list"></div>
+      </section>
+      </div>
+</section>
+
+  <!-- 副屏 -->
+  <section id="page-mirror" class="page center">
+    <div class="col" style="width:100%;max-width:760px">
+      <div class="panel">
+        <h2>副屏</h2>
+        <div class="sub">把显示器或窗口投送到散热器屏幕</div>
+
+        <div class="row">
+          <label>捕获源</label>
+          <select id="capMode">
+            <option value="display">整个显示器</option>
+            <option value="window">指定窗口</option>
+          </select>
+        </div>
+
+        <div id="rowDisplay">
+          <div class="row"><label>显示器</label><select id="capDisplay"></select></div>
+          <div class="btn-row" style="margin-top:0"><button id="btnRefreshDisp">刷新显示器</button></div>
+        </div>
+
+        <div id="rowWindow" style="display:none">
+          <div class="row"><label>窗口</label><select id="capWindow"></select></div>
+          <div class="btn-row" style="margin-top:0"><button id="btnRefreshWin">刷新窗口列表</button></div>
+        </div>
+
+        <div class="row" style="margin-top:9px">
+          <label>目标 FPS</label>
+          <input id="capFps" type="number" value="20" min="1" max="30">
+        </div>
+
+        <div class="btn-row">
+          <button id="btnCap" class="primary">开启副屏</button>
+          <button id="btnCapOff">关闭</button>
+          <button id="btnCapPause">暂停</button>
+        </div>
+        <div class="hint" id="capHint">请先连接设备</div>
+      </div>
+
+      <div class="panel">
+        <h3>说明</h3>
+        <div class="hint">
+          开启副屏会接管屏幕，主题推送自动暂停；关闭后约 2 秒回退到内置仪表盘。<br><br>
+          想要「真正扩展桌面」的体验，可装 Virtual Display Driver（winget 一条命令），
+          系统会多一块虚拟显示器，就能把任意窗口拖进去。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 设置 -->
+  <section id="page-settings" class="page center">
+    <div class="col" style="width:100%;max-width:680px">
+      <div class="panel">
+        <h2>设置</h2>
+        <div class="sub">全局参数与启动项</div>
+
+        <h3 style="margin-top:14px">推送</h3>
+        <div class="row"><label>默认 FPS</label><input id="setFps" type="number" min="1" max="30"></div>
+        <div class="row"><label>目标帧大小</label><input id="setTargetBytes" type="number" step="500"></div>
+        <div class="hint">帧太大自动降 JPEG 质量，太小则升，用来稳住帧率。</div>
+
+        <h3 style="margin-top:14px">连接</h3>
+        <div class="row"><label>后台端口</label><input id="setPort" type="text" readonly></div>
+        <div class="btn-row"><button id="btnOpenUI">在新标签打开</button></div>
+
+        <h3 style="margin-top:14px">主题数据</h3>
+        <div class="btn-row" style="margin-top:0">
+          <button id="btnExportTheme">导出主题 JSON</button>
+          <button id="btnImportTheme">导入主题</button>
+          <button id="btnResetTheme">恢复默认</button>
+        </div>
+        <input type="file" id="fileTheme" accept=".json" style="display:none">
+
+        <h3 style="margin-top:14px">关于</h3>
+        <div class="kv"><span>版本</span><span class="stat">0.2.0</span></div>
+        <div class="kv"><span>渲染</span><span class="stat">C++ / GDI+ / DXGI</span></div>
+        <div class="kv"><span>协议</span><span class="stat">HID 1025B × N 包/帧</span></div>
+        <div class="kv"><span>屏幕</span><span class="stat">320 × 240</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Dock -->
+<nav class="dock">
+  <button class="dock-item active" data-page="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>
+    </svg>
+    <span>首页</span>
+  </button>
+  <button class="dock-item" data-page="editor">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
+    </svg>
+    <span>主题</span>
+  </button>
+  <button class="dock-item" data-page="mirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+    </svg>
+    <span>副屏</span>
+  </button>
+  <div class="dock-divider"></div>
+  <button class="dock-item" data-page="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+    </svg>
+    <span>设置</span>
+  </button>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = (t, msg) => {
+  const p = document.createElement('div');
+  p.style.color = t === 'error' ? 'var(--destructive)' : t === 'ok' ? 'var(--ok)'
+                : t === 'warn' ? 'var(--warn)' : 'var(--muted-foreground)';
+  p.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  $('log').appendChild(p);
+  $('log').scrollTop = $('log').scrollHeight;
+};
+
+// ==================== 渲染器 ====================
+// ==================== 主题增强：公共辅助 ====================
+// 指标清单（与后端 metrics.h 的 12 个键一一对应）
+const METRIC_LIST = [
+  ['cpu.load',        'CPU 占用'],
+  ['cpu.temp',        'CPU 温度'],
+  ['gpu.load',        'GPU 占用'],
+  ['gpu.temp',        'GPU 温度'],
+  ['mem.usedPercent', '内存 占用'],
+  ['mem.usedGB',      '内存 已用'],
+  ['mem.totalGB',     '内存 总量'],
+  ['disk.usedPercent','磁盘 占用'],
+  ['disk.freeGB',     '磁盘 剩余'],
+  ['disk.totalGB',    '磁盘 总量'],
+  ['net.recvTotal',   '网络 下行'],
+  ['net.sendTotal',   '网络 上行']
+];
+function metricLabel(k){
+  const f = METRIC_LIST.find(x => x[0] === k);
+  return f ? f[1] : k;
+}
+
+// 数值 -> 文本。dec 为空/非法时按原有行为保留 1 位小数
+// 管道函数：${cpu.temp | round(1) | clamp(0,100)}
+function evalPipes(val, pipes){
+  let n = Number(val);
+  if(!isFinite(n)) n = 0;
+  for(const raw of (pipes||[])){
+    const m = /^\s*([A-Za-z_]\w*)\s*(?:\(([^)]*)\))?\s*$/.exec(String(raw||''));
+    if(!m) continue;
+    const fn = m[1].toLowerCase();
+    const args = String(m[2]||'').split(',').map(s=>s.trim()).filter(s=>s!=='').map(Number);
+    const a0 = isFinite(args[0]) ? args[0] : 0;
+    if(fn==='round') n = +n.toFixed(Math.max(0, Math.min(6, a0)));
+    else if(fn==='floor') n = Math.floor(n);
+    else if(fn==='ceil') n = Math.ceil(n);
+    else if(fn==='abs') n = Math.abs(n);
+    else if(fn==='clamp'){ const lo = isFinite(args[0])?args[0]:0, hi = isFinite(args[1])?args[1]:100; n = Math.min(hi, Math.max(lo, n)); }
+    else if(fn==='min') n = Math.min(n, a0);
+    else if(fn==='max') n = Math.max(n, a0);
+    else if(fn==='mul') n = n * (isFinite(args[0])?args[0]:1);
+    else if(fn==='div'){ const dv = isFinite(args[0])?args[0]:1; if(dv!==0) n = n/dv; }
+  }
+  return n;
+}
+
+function numText(v, dec){
+  if (v === undefined || v === null || v === '' || isNaN(v)) return '';
+  const x = Number(v);
+  let d;
+  if (dec === '' || dec === undefined || dec === null || isNaN(dec)) d = 1;
+  else d = Math.max(0, Math.min(4, Number(dec)));
+  return d === 0 ? String(Math.round(x)) : x.toFixed(d);
+}
+
+// 阈值配色：超过 danger 用危险色，超过 warn 用警戒色
+// 显示条件：cpu.temp>80 && gpu.load<50  （留空 = 始终显示）
+function condOk(expr, m){
+  const s = String(expr||'').trim();
+  if(!s) return true;
+  return s.split('&&').every(part=>{
+    const t = /^\s*([\w.]+)\s*(>=|<=|==|!=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/.exec(part);
+    if(!t) return true;                       // 写错了就当没条件，别把控件弄没
+    const v = Number((m||{})[t[1]]);
+    const n = Number(t[3]);
+    if(!isFinite(v)) return true;
+    switch(t[2]){
+      case '>':  return v >  n;
+      case '>=': return v >= n;
+      case '<':  return v <  n;
+      case '<=': return v <= n;
+      case '==': return v === n;
+      case '!=': return v !== n;
+    }
+    return true;
+  });
+}
+
+// ---------------- 右键菜单 ----------------
+function deleteSelSet(){
+  const ids = selectedSet.size ? [...selectedSet] : (selected ? [selected] : []);
+  if(!ids.length) return;
+  pushUndo();
+  theme.widgets = theme.widgets.filter(w=>!ids.includes(w.id));
+  setSel([]); selected = null;
+  renderLayers(); renderProps(); renderFrame(); markDirty();
+  log('ok', '已删除 ' + ids.length + ' 个控件');
+}
+function ensureCtx(){
+  let m = $('ctxMenu');
+  if(m) return m;
+  m = document.createElement('div');
+  m.id = 'ctxMenu'; m.className = 'ctxmenu'; m.style.display = 'none';
+  document.body.appendChild(m);
+  return m;
+}
+function closeCtx(){ const m = $('ctxMenu'); if(m) m.style.display = 'none'; }
+function showCtx(x, y, w){
+  if(w && !selectedSet.has(w.id)) setSel(w.id);
+  if(w) renderLayers();
+  const m = ensureCtx(); m.innerHTML = '';
+  const item = (label, fn, danger)=>{
+    const b = document.createElement('button');
+    b.textContent = label;
+    if(danger) b.className = 'danger';
+    b.onclick = ()=>{ closeCtx(); fn(); };
+    m.appendChild(b);
+  };
+  const sep = ()=>{ const d=document.createElement('div'); d.className='sep'; m.appendChild(d); };
+  if(w){
+    item('复制', ()=>copySel());
+    item('删除', ()=>deleteSelSet(), true);
+    sep();
+    item('置顶', ()=>bumpZ('front'));
+    item('置底', ()=>bumpZ('back'));
+    sep();
+    item(w.locked ? '解锁' : '锁定', ()=>{ w.locked=!w.locked; renderLayers(); renderProps(); renderFrame(); markDirty(); });
+    item(w.hidden ? '显示' : '隐藏', ()=>{ w.hidden=!w.hidden; renderLayers(); renderProps(); renderFrame(); markDirty(); });
+    sep();
+    const gid=w.group||'';
+    item(gid? '选中同组' : '成组', ()=>{
+      if(gid){
+        setSel(theme.widgets.filter(x=>x.group===gid).map(x=>x.id));
+        renderLayers(); renderProps(); return;
+      }
+      const ids=[...selectedSet];
+      if(ids.length<2){ log('warn','先选中两个以上控件再成组'); return; }
+      pushUndo();
+      const g='g'+Date.now().toString(36).slice(-4);
+      theme.widgets.forEach(x=>{ if(ids.includes(x.id)) x.group=g; });
+      renderLayers(); renderFrame(); markDirty();
+      log('ok','已成组，点组内任一控件会选中整组');
+    });
+    if(gid) item('解组', ()=>{
+      const ids=[...selectedSet];
+      pushUndo();
+      theme.widgets.forEach(x=>{ if(ids.includes(x.id)) delete x.group; });
+      renderLayers(); renderFrame(); markDirty(); log('ok','已解组');
+    }, true);
+  } else {
+    item('粘贴', ()=>pasteSel());
+    item('全选', ()=>{ setSel(theme.widgets.filter(x=>x.type!=='bgImage').map(x=>x.id)); renderLayers(); renderProps(); });
+  }
+  m.style.display = 'block';
+  m.style.left = Math.round(x) + 'px';
+  m.style.top = Math.round(y) + 'px';
+  const b = m.getBoundingClientRect();
+  if(b.right > innerWidth - 4) m.style.left = Math.max(4, innerWidth - b.width - 6) + 'px';
+  if(b.bottom > innerHeight - 4) m.style.top = Math.max(4, innerHeight - b.height - 6) + 'px';
+}
+
+function thColor(p, v){
+  if (!p) return null;
+  if (v === undefined || v === null || isNaN(v)) return null;
+  const raw = Number(v);
+  const dv = Number(p.thDanger), wv = Number(p.thWarn);
+  if (p.thDangerColor && !isNaN(dv) && dv > 0 && raw >= dv) return p.thDangerColor;
+  if (p.thWarnColor   && !isNaN(wv) && wv > 0 && raw >= wv) return p.thWarnColor;
+  return null;
+}
+
+// 字体：解析 CSS 字体串 <-> {bold,italic,size,family}
+const FONT_FAMS = ['sans-serif','system-ui','Microsoft YaHei','微软雅黑','SimHei',
+                   'Segoe UI','Arial','Impact','Consolas','ui-monospace',
+                   'monospace','serif'];
+function parseFont(str){
+  const t = String(str || '');
+  const o = { bold: /\bbold\b/.test(t), italic: /\bitalic\b/.test(t),
+              size: 16, family: 'sans-serif' };
+  const m = /(\d+(?:\.\d+)?)px/.exec(t);
+  if (m) o.size = Math.round(Number(m[1]));
+  const fam = t.replace(/\b(italic|bold)\b/g, '')
+               .replace(/\d+(?:\.\d+)?px/g, '')
+               .replace(/[\s,]+/g, ' ').trim();
+  if (fam) o.family = fam;
+  return o;
+}
+function buildFont(o){
+  const sz = Math.max(6, Math.min(96, Number(o.size) || 16));
+  return (o.italic ? 'italic ' : '') + (o.bold ? 'bold ' : '') +
+         sz + 'px ' + (o.family || 'sans-serif');
+}
+
+// 数值平滑过渡（只影响预览，不写入主题）
+const SMOOTH = { on: true, state: new Map() };
+function smoothTo(key, target){
+  const cur = SMOOTH.state.get(key);
+  if (cur === undefined) { SMOOTH.state.set(key, target); return target; }
+  const d = target - cur;
+  if (Math.abs(d) < 0.08) { SMOOTH.state.set(key, target); return target; }
+  const next = cur + d * 0.22;
+  SMOOTH.state.set(key, next);
+  return next;
+}
+function smoothReset(){ SMOOTH.state.clear(); }
+
+const RENDERERS = {
+  arcGauge: {
+    name: '环形仪表',
+    defaults: { value:50, label:'CPU', arcColor:'#22d3ee', trackColor:'#27272a', thickness:10,
+                font:'bold 20px sans-serif', decimals:0,
+                thWarn:'', thWarnColor:'#f59e0b', thDanger:'', thDangerColor:'#ef4444' },
+    schema: [
+      {k:'value',n:'取值',t:'number'}, {k:'label',n:'标题',t:'text'},
+      {k:'arcColor',n:'进度色',t:'color'}, {k:'trackColor',n:'底环色',t:'color'},
+      {k:'thickness',n:'环宽',t:'number'}, {k:'font',n:'字体',t:'font'},
+      {k:'decimals',n:'小数位',t:'select',options:[['0','0'],['1','1'],['2','2']]}
+    ],
+    draw(c,w,p){
+      const th=+p.thickness||10;
+      const r=Math.min(w.w,w.h)/2-th/2-2;
+      const cx=w.x+w.w/2, cy=w.y+w.h/2;
+      const raw=+p.value||0;
+      const v=Math.max(0,Math.min(100,raw));
+      const warn=thColor(p,raw);
+      c.lineWidth=th; c.lineCap='round';
+      c.beginPath(); c.strokeStyle=p.trackColor; c.arc(cx,cy,r,Math.PI*.75,Math.PI*2.25); c.stroke();
+      c.beginPath(); c.strokeStyle=warn||p.arcColor;
+      c.arc(cx,cy,r,Math.PI*.75,Math.PI*.75+Math.PI*1.5*v/100); c.stroke();
+      c.fillStyle=warn||'#fff'; c.font=p.font; c.textAlign='center'; c.textBaseline='middle';
+      c.fillText(numText(v, p.decimals===undefined||p.decimals===null?'0':p.decimals)+'%',cx,cy);
+      if(p.label){ c.font='11px sans-serif'; c.fillStyle=warn||'#9aa7b5'; c.fillText(p.label,cx,cy+r*.56); }
+    }
+  },
+  text: {
+    name:'文字',
+    defaults:{ template:'CPU ${value}%', color:'#ffffff', font:'bold 18px sans-serif',
+               align:'center', decimals:1, suffix:'', noValue:'-',
+               thWarn:'', thWarnColor:'#f59e0b', thDanger:'', thDangerColor:'#ef4444' },
+    schema:[
+      {k:'template',n:'模板',t:'text'}, {k:'color',n:'颜色',t:'color'},
+      {k:'font',n:'字体',t:'font'},
+      {k:'align',n:'对齐',t:'select',options:[['左','left'],['中','center'],['右','right']]},
+      {k:'decimals',n:'小数位',t:'select',options:[['自动',''],['0','0'],['1','1'],['2','2']]},
+      {k:'suffix',n:'后缀',t:'text'},
+      {k:'noValue',n:'无值显示',t:'text'}
+    ],
+    draw(c,w,p,bindings,metrics){
+      let tpl=String(p.template||'');
+      // 支持 ${value} / ${cpu.load} / ${cpu.temp | round(1) | clamp(0,100)}
+      tpl=tpl.replace(/\$\{([^}]+)\}/g,(m,expr)=>{
+        const parts=String(expr).split('|');
+        const k=(parts[0]||'').trim();
+        const key=(bindings&&bindings[k])||k;
+        if(!(key in metrics)) return p.noValue||'';
+        const v=evalPipes(metrics[key], parts.slice(1));
+        return numText(v, p.decimals)+(p.suffix||'');
+      });
+      const bv=(bindings&&bindings.value)?metrics[bindings.value]:undefined;
+      c.fillStyle=thColor(p,bv)||p.color; c.font=p.font; c.textBaseline='middle';
+      c.textAlign=p.align||'left';
+      const x = p.align==='center'? w.x+w.w/2 : p.align==='right'? w.x+w.w : w.x;
+      c.fillText(tpl,x,w.y+w.h/2);
+    }
+  },
+  bar: {
+    name:'进度条',
+    defaults:{ value:50, fillColor:'#22d3ee', bgColor:'#27272a', radius:4, direction:'h',
+               thWarn:'', thWarnColor:'#f59e0b', thDanger:'', thDangerColor:'#ef4444' },
+    schema:[
+      {k:'value',n:'取值',t:'number'},
+      {k:'fillColor',n:'填充色',t:'color'}, {k:'bgColor',n:'背景色',t:'color'},
+      {k:'radius',n:'圆角',t:'number'},
+      {k:'direction',n:'方向',t:'select',options:[['横','h'],['竖','v']]}
+    ],
+    draw(c,w,p){
+      const rawV=+p.value||0;
+      const v=Math.max(0,Math.min(100,rawV))/100;
+      const fc=thColor(p,rawV)||p.fillColor;
+      const rr=+p.radius||4;
+      const box=(x,y,ww,hh,fill)=>{
+        c.beginPath();
+        const r=Math.min(rr,ww/2,hh/2);
+        c.moveTo(x+r,y); c.lineTo(x+ww-r,y); c.quadraticCurveTo(x+ww,y,x+ww,y+r);
+        c.lineTo(x+ww,y+hh-r); c.quadraticCurveTo(x+ww,y+hh,x+ww-r,y+hh);
+        c.lineTo(x+r,y+hh); c.quadraticCurveTo(x,y+hh,x,y+hh-r);
+        c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+        c.closePath(); c.fillStyle=fill; c.fill();
+      };
+      box(w.x,w.y,w.w,w.h,p.bgColor);
+      if(p.direction==='v'){ const h=w.h*v; box(w.x,w.y+w.h-h,w.w,h,fc); }
+      else box(w.x,w.y,w.w*v,w.h,fc);
+    }
+  },
+  panel: {
+    name:'色块',
+    defaults:{ color:'#18181b', radius:8 },
+    schema:[{k:'color',n:'颜色',t:'color'},{k:'radius',n:'圆角',t:'number'}],
+    draw(c,w,p){
+      const r=+p.radius||8, rr=Math.min(r,w.w/2,w.h/2);
+      c.beginPath();
+      c.moveTo(w.x+rr,w.y); c.arcTo(w.x+w.w,w.y,w.x+w.w,w.y+w.h,rr);
+      c.arcTo(w.x+w.w,w.y+w.h,w.x,w.y+w.h,rr);
+      c.arcTo(w.x,w.y+w.h,w.x,w.y,rr); c.arcTo(w.x,w.y,w.x+w.w,w.y,rr);
+      c.closePath(); c.fillStyle=p.color; c.fill();
+    }
+  }
+
+  ,
+  image: {
+    name:'图片',
+    defaults:{ src:'', fit:'cover', radius:6 },
+    schema:[
+      {k:'src',n:'图片地址',t:'text'},
+      {k:'fit',n:'填充',t:'select',options:[['裁切','cover'],['完整','contain'],['拉伸','fill']]},
+      {k:'radius',n:'圆角',t:'number'},
+      {k:'quality',n:'清晰度',t:'range',min:0.2,max:0.98,step:0.02}
+    ],
+    _cache:{},
+    draw(c,w,p){
+      if(!p.src) return;
+      const cache=this._cache;
+      let img=cache[p.src];
+      if(!img){
+        img=new Image();
+        img.onload = () => { try{ renderFrame(); }catch(e){} };
+        img.src=p.src;
+        cache[p.src]=img;
+        // 关键：首次创建后必须安排重绘，否则画布会一直黑着
+        if(!this._pending){
+          this._pending = true;
+          setTimeout(() => { this._pending = false; try{ renderFrame(); }catch(e){} }, 100);
+        }
+        return;
+      }
+      if(!img.complete || !img.naturalWidth){
+        // 还没加载完：安排一次延迟重绘（onload 在 dataURL 下不一定可靠）
+        if(!this._pending){
+          this._pending = true;
+          setTimeout(() => { this._pending = false; try{ renderFrame(); }catch(e){} }, 120);
+        }
+        return;
+      }
+      c.save();
+      const r=+p.radius||0;
+      if(r>0){
+        c.beginPath();
+        const rr=Math.min(r,w.w/2,w.h/2);
+        c.moveTo(w.x+rr,w.y); c.arcTo(w.x+w.w,w.y,w.x+w.w,w.y+w.h,rr);
+        c.arcTo(w.x+w.w,w.y+w.h,w.x,w.y+w.h,rr);
+        c.arcTo(w.x,w.y+w.h,w.x,w.y,rr); c.arcTo(w.x,w.y,w.x+w.w,w.y,rr);
+        c.closePath(); c.clip();
+      }
+      if(p.fit==='fill'){ c.drawImage(img,w.x,w.y,w.w,w.h); }
+      else {
+        const ir=img.naturalWidth/img.naturalHeight, br=w.w/w.h;
+        let dw,dh;
+        if((p.fit==='cover') === (ir>br)){ dh=w.h; dw=dh*ir; }
+        else { dw=w.w; dh=dw/ir; }
+        c.drawImage(img, w.x+(w.w-dw)/2, w.y+(w.h-dh)/2, dw, dh);
+      }
+      c.restore();
+    }
+  },
+
+  video: {
+    name:'视频',
+    defaults:{ src:'', fit:'cover', radius:0, muted:'1', loop:'1' },
+    schema:[
+      {k:'src',n:'视频来源',t:'video'},
+      {k:'fit',n:'填充',t:'select',options:[['裁切','cover'],['完整','contain'],['拉伸','fill']]},
+      {k:'radius',n:'圆角',t:'number'},
+      {k:'loop',n:'循环',t:'select',options:[['是','1'],['否','']]},
+      {k:'muted',n:'静音',t:'select',options:[['是','1'],['否','']]}
+    ],
+    _cache:{},
+    draw(c,w,p){
+      if(!p.src) return;
+      const cache=this._cache;
+      let v=cache[p.src];
+      if(!v){
+        v=document.createElement('video');
+        v.src=p.src;
+        v.muted = String(p.muted)!=='0';
+        v.loop = String(p.loop)!=='0';
+        v.playsInline=true; v.autoplay=true;
+        v.play().catch(()=>{});
+        cache[p.src]=v;
+        return;
+      }
+      if(!v.videoWidth) return;
+      c.save();
+      const r=+p.radius||0;
+      if(r>0){
+        c.beginPath();
+        const rr=Math.min(r,w.w/2,w.h/2);
+        c.moveTo(w.x+rr,w.y); c.arcTo(w.x+w.w,w.y,w.x+w.w,w.y+w.h,rr);
+        c.arcTo(w.x+w.w,w.y+w.h,w.x,w.y+w.h,rr);
+        c.arcTo(w.x,w.y+w.h,w.x,w.y,rr); c.arcTo(w.x,w.y,w.x+w.w,w.y,rr);
+        c.closePath(); c.clip();
+      }
+      const sw=v.videoWidth, sh=v.videoHeight;
+      if(p.fit==='fill'){ c.drawImage(v,w.x,w.y,w.w,w.h); }
+      else {
+        const sr=sw/sh, tr=w.w/w.h;
+        let dw,dh;
+        if((p.fit==='cover') === (sr>tr)){ dh=w.h; dw=dh*sr; }
+        else { dw=w.w; dh=dw/sr; }
+        c.drawImage(v, w.x+(w.w-dw)/2, w.y+(w.h-dh)/2, dw, dh);
+      }
+      c.restore();
+    }
+  },
+
+bgImage: {
+    name:'背景图',
+    defaults:{ src:'', fit:'cover', radius:0, dim:0, quality:0.85 },
+    schema:[
+      {k:'src',n:'图片来源',t:'image'},
+      {k:'fit',n:'铺满方式',t:'select',options:[['裁切铺满','cover'],['完整留边','contain'],['拉伸','fill']]},
+      {k:'dim',n:'压暗(0-100)',t:'number'},
+      {k:'radius',n:'圆角',t:'number'},
+      {k:'quality',n:'清晰度',t:'range',min:0.2,max:0.98,step:0.02}
+    ],
+    _cache:{},
+    draw(c,w,p){
+      if(!p.src) return;
+      const cache=this._cache;
+      let img=cache[p.src];
+      if(!img){
+        img=new Image();
+        img.crossOrigin='anonymous';
+        img.src=p.src;
+        if(!this._pending){
+          this._pending = true;
+          setTimeout(() => { this._pending = false; try{ renderFrame(); }catch(e){} }, 100);
+        }
+        cache[p.src]=img;
+        // 首次创建后必须安排重绘，否则画布会一直黑着（图片是异步解码的）
+        if(!this._pending){
+          this._pending = true;
+          setTimeout(() => { this._pending = false; try{ renderFrame(); }catch(e){} }, 100);
+        }
+        return;
+      }
+      if(!img.complete || !img.naturalWidth){
+        // 还没加载完：安排一次延迟重绘（onload 在 dataURL 下不一定可靠）
+        if(!this._pending){
+          this._pending = true;
+          setTimeout(() => { this._pending = false; try{ renderFrame(); }catch(e){} }, 120);
+        }
+        return;
+      }
+
+      c.save();
+      const r=+p.radius||0;
+      if(r>0){
+        c.beginPath();
+        const rr=Math.min(r,w.w/2,w.h/2);
+        c.moveTo(w.x+rr,w.y); c.arcTo(w.x+w.w,w.y,w.x+w.w,w.y+w.h,rr);
+        c.arcTo(w.x+w.w,w.y+w.h,w.x,w.y+w.h,rr);
+        c.arcTo(w.x,w.y+w.h,w.x,w.y,rr); c.arcTo(w.x,w.y,w.x+w.w,w.y,rr);
+        c.closePath(); c.clip();
+      }
+      if(p.fit==='fill'){ c.drawImage(img,w.x,w.y,w.w,w.h); }
+      else {
+        const ir=img.naturalWidth/img.naturalHeight, br=w.w/w.h;
+        let dw,dh;
+        if((p.fit==='cover') === (ir>br)){ dh=w.h; dw=dh*ir; }
+        else { dw=w.w; dh=dw/ir; }
+        c.drawImage(img, w.x+(w.w-dw)/2, w.y+(w.h-dh)/2, dw, dh);
+      }
+      // 压暗遮罩：让前景文字在亮背景上也看得清
+      const dim=Math.max(0,Math.min(100,+p.dim||0));
+      if(dim>0){
+        c.fillStyle='rgba(0,0,0,'+(dim/100)+')';
+        c.fillRect(w.x,w.y,w.w,w.h);
+      }
+      c.restore();
+    }
+  },
+
+  clock: {
+    name:'时钟',
+    defaults:{ fmt:'HH:mm', color:'#ffffff', font:'bold 34px sans-serif',
+               showDate:'', dateColor:'#94a3b8', dateFont:'12px sans-serif', align:'center' },
+    schema:[
+      {k:'fmt',n:'格式',t:'text'},
+      {k:'color',n:'时间色',t:'color'},
+      {k:'font',n:'时间字体',t:'font'},
+      {k:'showDate',n:'显示日期',t:'select',options:[['是','1'],['否','']]},
+      {k:'dateColor',n:'日期色',t:'color'},
+      {k:'dateFont',n:'日期字体',t:'font'},
+      {k:'align',n:'对齐',t:'select',options:[['左','left'],['中','center'],['右','right']]}
+    ],
+    draw(c,w,p){
+      const now=new Date();
+      const pad=n=>String(n).padStart(2,'0');
+      let s=String(p.fmt||'HH:mm')
+        .replace(/HH/g,pad(now.getHours()))
+        .replace(/mm/g,pad(now.getMinutes()))
+        .replace(/ss/g,pad(now.getSeconds()));
+      c.textAlign=p.align||'center'; c.textBaseline='middle';
+      const x = p.align==='left'? w.x : p.align==='right'? w.x+w.w : w.x+w.w/2;
+      const hasDate = String(p.showDate)==='1';
+      c.fillStyle=p.color; c.font=p.font;
+      c.fillText(s, x, hasDate? w.y+w.h*0.38 : w.y+w.h/2);
+      if(hasDate){
+        const week='日一二三四五六'[now.getDay()];
+        c.fillStyle=p.dateColor; c.font=p.dateFont;
+        c.fillText(`${now.getMonth()+1}月${now.getDate()}日 周${week}`, x, w.y+w.h*0.78);
+      }
+    }
+  },
+
+  sparkline: {
+    name:'折线图',
+    defaults:{ value:50, lineColor:'#22d3ee', fillColor:'#22d3ee22', lineWidth:2, samples:40,
+               thWarn:'', thWarnColor:'#f59e0b', thDanger:'', thDangerColor:'#ef4444' },
+    schema:[
+      {k:'value',n:'当前值',t:'number'},
+      {k:'lineColor',n:'线色',t:'color'},
+      {k:'fillColor',n:'填充色',t:'color'},
+      {k:'lineWidth',n:'线宽',t:'number'},
+      {k:'samples',n:'采样数',t:'number'}
+    ],
+    _hist:{},
+    draw(c,w,p){
+      // 用控件 id 做 key；以前用坐标，拖动一下就丢历史
+      const id=w.id||((w.x|0)+'_'+(w.y|0)+'_'+(w.w|0));
+      if(!this._hist[id]) this._hist[id]=[];
+      const hist=this._hist[id];
+      hist.push(Math.max(0,Math.min(100,+p.value||0)));
+      const maxN=Math.max(4,Math.min(200,+p.samples||40));
+      while(hist.length>maxN) hist.shift();
+      if(hist.length<2) return;
+
+      const n=hist.length;
+      const px=i=> w.x + (i/(n-1))*w.w;
+      const py=v=> w.y + w.h - (v/100)*w.h;
+
+      if(p.fillColor){
+        c.save();
+        c.beginPath();
+        c.moveTo(px(0), py(hist[0]));
+        for(let i=1;i<n;i++) c.lineTo(px(i), py(hist[i]));
+        c.lineTo(px(n-1), w.y+w.h);
+        c.lineTo(px(0), w.y+w.h);
+        c.closePath();
+        c.fillStyle=p.fillColor; c.fill();
+        c.restore();
+      }
+      c.beginPath();
+      c.moveTo(px(0), py(hist[0]));
+      for(let i=1;i<n;i++) c.lineTo(px(i), py(hist[i]));
+      c.strokeStyle=thColor(p,+p.value||0)||p.lineColor; c.lineWidth=+p.lineWidth||2;
+      c.lineJoin='round'; c.lineCap='round';
+      c.stroke();
+    }
+  },
+
+  icon: {
+    name:'图标',
+    defaults:{ shape:'circle', color:'#22d3ee', bgColor:'', size:0 },
+    schema:[
+      {k:'shape',n:'形状',t:'select',options:[['圆','circle'],['方','square'],['三角','triangle'],['十字','cross'],['闪电','bolt']]},
+      {k:'color',n:'颜色',t:'color'},
+      {k:'bgColor',n:'背景',t:'color'},
+      {k:'size',n:'尺寸(0自适应)',t:'number'}
+    ],
+    draw(c,w,p){
+      if(p.bgColor){ c.fillStyle=p.bgColor; c.fillRect(w.x,w.y,w.w,w.h); }
+      const s=(+p.size||0)||Math.min(w.w,w.h);
+      const cx=w.x+w.w/2, cy=w.y+w.h/2, h=s/2;
+      c.fillStyle=p.color;
+      if(p.shape==='circle'){ c.beginPath(); c.arc(cx,cy,h,0,Math.PI*2); c.fill(); }
+      else if(p.shape==='square'){ c.fillRect(cx-h,cy-h,s,s); }
+      else if(p.shape==='triangle'){
+        c.beginPath(); c.moveTo(cx,cy-h); c.lineTo(cx+h,cy+h); c.lineTo(cx-h,cy+h); c.closePath(); c.fill();
+      } else if(p.shape==='cross'){
+        const t=s*0.28;
+        c.fillRect(cx-h,cy-t/2,s,t);
+        c.fillRect(cx-t/2,cy-h,t,s);
+      } else if(p.shape==='bolt'){
+        c.beginPath();
+        c.moveTo(cx+s*0.08,cy-h); c.lineTo(cx-h*0.55,cy+s*0.06);
+        c.lineTo(cx-s*0.02,cy+s*0.06); c.lineTo(cx-s*0.08,cy+h);
+        c.lineTo(cx+h*0.55,cy-s*0.06); c.lineTo(cx+s*0.02,cy-s*0.06);
+        c.closePath(); c.fill();
+      }
+    }
+  },
+
+  divider: {
+    name:'分隔线',
+    defaults:{ color:'#27272a', thickness:1, style:'solid' },
+    schema:[
+      {k:'color',n:'颜色',t:'color'},
+      {k:'thickness',n:'粗细',t:'number'},
+      {k:'style',n:'样式',t:'select',options:[['实线','solid'],['虚线','dash'],['点线','dot']]}
+    ],
+    draw(c,w,p){
+      const t=+p.thickness||1;
+      c.save();
+      c.strokeStyle=p.color; c.lineWidth=t;
+      if(p.style==='dash') c.setLineDash([Math.max(4,t*3),Math.max(3,t*2)]);
+      else if(p.style==='dot'){ c.setLineDash([t,Math.max(3,t*2)]); c.lineCap='round'; }
+      c.beginPath();
+      if(w.w>=w.h){ const y=w.y+w.h/2; c.moveTo(w.x,y); c.lineTo(w.x+w.w,y); }
+      else { const x=w.x+w.w/2; c.moveTo(x,w.y); c.lineTo(x,w.y+w.h); }
+      c.stroke();
+      c.restore();
+    }
+  }
+};
+
+// 控件库条目（顺序 = 显示顺序）
+const PALETTE_ITEMS = [
+  { key:'arcGauge', name:'环形仪表', kind:'widget' },
+  { key:'text',     name:'文字',     kind:'widget' },
+  { key:'bar',      name:'进度条',   kind:'widget' },
+  { key:'panel',    name:'色块',     kind:'widget' },
+  { key:'media',    name:'图片/视频', kind:'media', tip:'选择图片或视频文件插入' },
+  { key:'bg',       name:'背景图',   kind:'bg',    tip:'铺满画布的底层背景，全主题唯一' },
+  { key:'clock',    name:'时钟',     kind:'widget' },
+  { key:'sparkline',name:'折线图',   kind:'widget' },
+  { key:'icon',     name:'图标',     kind:'widget' },
+  { key:'divider',  name:'分隔线',   kind:'widget' }
+];
+
+// ==================== 主题 ====================
+const DEFAULT_THEME = () => ({
+  id:'default', name:'默认主题',
+  canvas:{ width:320, height:240, fps:20, background:'#000000' },
+  widgets:[
+    { id:'bg', type:'panel', rect:{x:0,y:0,w:320,h:31}, props:{color:'#0e7490',radius:0}, z:0 },
+    { id:'tt', type:'text', rect:{x:0,y:0,w:320,h:31}, props:{template:'COOLLEO STUDIO',color:'#ffffff',font:'bold 15px sans-serif',align:'center'}, z:1 },
+    { id:'g1', type:'arcGauge', rect:{x:96,y:38,w:128,h:106}, props:{label:'CPU',arcColor:'#22d3ee',thickness:9,font:'bold 18px sans-serif'}, bindings:{value:'cpu.load'}, z:2 },
+    { id:'g2', type:'arcGauge', rect:{x:6,y:148,w:94,h:82}, props:{label:'内存',arcColor:'#f472b6',thickness:7,font:'bold 13px sans-serif'}, bindings:{value:'mem.usedPercent'}, z:2 },
+    { id:'g3', type:'arcGauge', rect:{x:220,y:148,w:94,h:82}, props:{label:'磁盘',arcColor:'#4ade80',thickness:7,font:'bold 13px sans-serif'}, bindings:{value:'disk.usedPercent'}, z:2 },
+    { id:'t1', type:'text', rect:{x:0,y:223,w:320,h:17}, props:{template:'127.0.0.1:8765',color:'#3A5060',font:'10px sans-serif',align:'center'}, z:3 }
+  ]
+});
+
+// ==================== 主题模板 ====================
+const TEMPLATES = [
+  { name:'默认仪表盘', build:()=>DEFAULT_THEME() },
+  { name:'极简数字', build:()=>({
+      canvas:{width:320,height:240,fps:20,background:'#000000'},
+      widgets:[
+        {id:'t1',type:'text',rect:{x:0,y:16,w:320,h:34},props:{template:'CPU ${value}%',color:'#ffffff',font:'bold 30px sans-serif',align:'center'},bindings:{value:'cpu.load'},z:1},
+        {id:'t2',type:'text',rect:{x:0,y:66,w:320,h:26},props:{template:'MEM ${value}%',color:'#22d3ee',font:'bold 20px sans-serif',align:'center'},bindings:{value:'mem.usedPercent'},z:1},
+        {id:'t3',type:'text',rect:{x:0,y:100,w:320,h:26},props:{template:'DISK ${value}%',color:'#a78bfa',font:'bold 20px sans-serif',align:'center'},bindings:{value:'disk.usedPercent'},z:1},
+        {id:'b1',type:'bar',rect:{x:40,y:146,w:240,h:8},props:{value:50,fillColor:'#ffffff',bgColor:'#27272a',radius:4,direction:'h'},bindings:{value:'cpu.load'},z:2},
+        {id:'b2',type:'bar',rect:{x:40,y:164,w:240,h:8},props:{value:50,fillColor:'#22d3ee',bgColor:'#27272a',radius:4,direction:'h'},bindings:{value:'mem.usedPercent'},z:2},
+        {id:'b3',type:'bar',rect:{x:40,y:182,w:240,h:8},props:{value:50,fillColor:'#a78bfa',bgColor:'#27272a',radius:4,direction:'h'},bindings:{value:'disk.usedPercent'},z:2}
+      ]
+    }) },
+  { name:'大环+折线', build:()=>({
+      canvas:{width:320,height:240,fps:20,background:'#000000'},
+      widgets:[
+        {id:'g1',type:'arcGauge',rect:{x:8,y:8,w:140,h:140},props:{label:'CPU',arcColor:'#22d3ee',thickness:12,font:'bold 26px sans-serif'},bindings:{value:'cpu.load'},z:1},
+        {id:'s1',type:'sparkline',rect:{x:156,y:12,w:156,h:62},props:{value:50,lineColor:'#22d3ee',fillColor:'#22d3ee22',lineWidth:2,samples:50},bindings:{value:'cpu.load'},z:1},
+        {id:'b1',type:'bar',rect:{x:156,y:82,w:156,h:9},props:{value:50,fillColor:'#f472b6',bgColor:'#1b2027',radius:4,direction:'h'},bindings:{value:'mem.usedPercent'},z:1},
+        {id:'b2',type:'bar',rect:{x:156,y:98,w:156,h:9},props:{value:50,fillColor:'#4ade80',bgColor:'#1b2027',radius:4,direction:'h'},bindings:{value:'disk.usedPercent'},z:1},
+        {id:'t1',type:'text',rect:{x:156,y:112,w:78,h:24},props:{template:'${value}%',color:'#f472b6',font:'bold 15px sans-serif',align:'left'},bindings:{value:'mem.usedPercent'},z:2},
+        {id:'t2',type:'text',rect:{x:236,y:112,w:78,h:24},props:{template:'${value}%',color:'#4ade80',font:'bold 15px sans-serif',align:'right'},bindings:{value:'disk.usedPercent'},z:2},
+        {id:'t3',type:'text',rect:{x:8,y:150,w:304,h:20},props:{template:'CPU ${value}%',color:'#9aa7b5',font:'12px sans-serif',align:'center'},bindings:{value:'cpu.load'},z:1},
+        {id:'d1',type:'divider',rect:{x:8,y:176,w:304,h:2},props:{color:'#27272a',thickness:1,style:'dash'},z:1},
+        {id:'c1',type:'clock',rect:{x:8,y:182,w:304,h:50},props:{fmt:'HH:mm:ss',color:'#ffffff',font:'bold 26px sans-serif',showDate:'1',dateColor:'#71717b',dateFont:'11px sans-serif',align:'center'},z:2}
+      ]
+    }) },
+  { name:'时钟面板', build:()=>({
+      canvas:{width:320,height:240,fps:10,background:'#05070b'},
+      widgets:[
+        {id:'c1',type:'clock',rect:{x:0,y:34,w:320,h:90},props:{fmt:'HH:mm',color:'#ffffff',font:'bold 60px sans-serif',showDate:'1',dateColor:'#22d3ee',dateFont:'14px sans-serif',align:'center'},z:2},
+        {id:'d1',type:'divider',rect:{x:52,y:134,w:216,h:2},props:{color:'#22d3ee',thickness:1,style:'dash'},z:1},
+        {id:'t1',type:'text',rect:{x:0,y:148,w:160,h:26},props:{template:'CPU ${value}%',color:'#9aa7b5',font:'bold 14px sans-serif',align:'center'},bindings:{value:'cpu.load'},z:1},
+        {id:'t2',type:'text',rect:{x:160,y:148,w:160,h:26},props:{template:'MEM ${value}%',color:'#9aa7b5',font:'bold 14px sans-serif',align:'center'},bindings:{value:'mem.usedPercent'},z:1},
+        {id:'s1',type:'sparkline',rect:{x:20,y:184,w:280,h:44},props:{value:50,lineColor:'#22d3ee',fillColor:'#22d3ee18',lineWidth:1.5,samples:60},bindings:{value:'cpu.load'},z:1}
+      ]
+    }) },
+  { name:'三环仪表', build:()=>({
+      canvas:{width:320,height:240,fps:20,background:'#000000'},
+      widgets:[
+        {id:'p1',type:'panel',rect:{x:0,y:0,w:320,h:28},props:{color:'#0e7490',radius:0},z:0},
+        {id:'t0',type:'text',rect:{x:0,y:0,w:320,h:28},props:{template:'SYSTEM MONITOR',color:'#ffffff',font:'bold 13px sans-serif',align:'center'},z:1},
+        {id:'g1',type:'arcGauge',rect:{x:10,y:38,w:96,h:96},props:{label:'CPU',arcColor:'#22d3ee',thickness:8,font:'bold 15px sans-serif'},bindings:{value:'cpu.load'},z:2},
+        {id:'g2',type:'arcGauge',rect:{x:112,y:38,w:96,h:96},props:{label:'内存',arcColor:'#f472b6',thickness:8,font:'bold 15px sans-serif'},bindings:{value:'mem.usedPercent'},z:2},
+        {id:'g3',type:'arcGauge',rect:{x:214,y:38,w:96,h:96},props:{label:'磁盘',arcColor:'#4ade80',thickness:8,font:'bold 15px sans-serif'},bindings:{value:'disk.usedPercent'},z:2},
+        {id:'d1',type:'divider',rect:{x:16,y:148,w:288,h:2},props:{color:'#27272a',thickness:1,style:'solid'},z:1},
+        {id:'t1',type:'text',rect:{x:16,y:158,w:140,h:28},props:{template:'CPU ${value}%',color:'#22d3ee',font:'bold 16px sans-serif',align:'left'},bindings:{value:'cpu.load'},z:1},
+        {id:'t2',type:'text',rect:{x:164,y:158,w:140,h:28},props:{template:'MEM ${value}%',color:'#f472b6',font:'bold 16px sans-serif',align:'right'},bindings:{value:'mem.usedPercent'},z:1},
+        {id:'t3',type:'text',rect:{x:0,y:200,w:320,h:28},props:{template:'Coolleo Studio',color:'#3A5060',font:'11px sans-serif',align:'center'},z:1}
+      ]
+    }) }
+];
+
+let theme = DEFAULT_THEME();
+let selected = null;
+let metrics = {};
+let pushing = false;
+let pushTimer = null;
+
+const undoStack = [], redoStack = [];
+function pushUndo(){
+  undoStack.push(JSON.stringify(theme));
+  if(undoStack.length>60) undoStack.shift();
+  redoStack.length = 0;
+}
+function doUndo(){
+  if(!undoStack.length) return;
+  redoStack.push(JSON.stringify(theme));
+  theme = JSON.parse(undoStack.pop());
+  if(selected && !theme.widgets.find(w=>w.id===selected)) selected=null;
+  renderLayers(); renderProps(); renderFrame();
+  log('ok','已撤销');
+}
+function doRedo(){
+  if(!redoStack.length) return;
+  undoStack.push(JSON.stringify(theme));
+  theme = JSON.parse(redoStack.pop());
+  if(selected && !theme.widgets.find(w=>w.id===selected)) selected=null;
+  renderLayers(); renderProps(); renderFrame();
+  log('ok','已重做');
+}
+
+// ==================== 页面切换 ====================
+const VALID_PAGES = ['home','editor','mirror','settings'];
+
+function switchPage(name, fromHash){
+  if(!VALID_PAGES.includes(name)) name = 'home';
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active', p.id==='page-'+name));
+  document.querySelectorAll('.dock-item').forEach(b=>b.classList.toggle('active', b.dataset.page===name));
+  // 记住当前页：刷新后能回到这里
+  if(!fromHash && location.hash !== '#'+name){
+    try{ history.replaceState(null, '', '#'+name); }catch(e){ location.hash = name; }
+    try{ localStorage.setItem('coolleo_page', name); }catch(e){}
+  }
+  if(name==='editor'){ renderFrame(); }
+  if(name==='mirror'){ loadDisplays(); loadWindows(); }
+}
+
+// 从 URL hash 恢复页面（刷新 / 直接打开带 #editor 的链接）
+function currentPageFromUrl(){
+  const h = (location.hash || '').replace('#','').trim();
+  if(VALID_PAGES.includes(h)) return h;
+  try{
+    const saved = localStorage.getItem('coolleo_page');
+    if(saved && VALID_PAGES.includes(saved)) return saved;
+  }catch(e){}
+  return 'home';
+}
+
+// 浏览器前进/后退
+window.addEventListener('hashchange', ()=>{
+  switchPage(currentPageFromUrl(), true);
+});
+document.querySelectorAll('.dock-item').forEach(b=>{ b.onclick = ()=>switchPage(b.dataset.page); });
+
+// ==================== 画布 ====================
+const cvEl = $('cv');
+const ctx = cvEl.getContext('2d',{alpha:false, willReadFrequently:true});
+
+function resolveRect(r, W, H){
+  const pick = (v, base) => {
+    if(typeof v === 'number') return v;
+    const s = String(v).trim();
+    if(s.endsWith('%')){ const p=parseFloat(s.slice(0,-1)); return isFinite(p)? p/100*base : 0; }
+    const n = parseFloat(s); return isFinite(n)? n : 0;
+  };
+  const W2 = W ?? theme.canvas.width, H2 = H ?? theme.canvas.height;
+  return { x:pick(r.x,W2), y:pick(r.y,H2), w:pick(r.w,W2), h:pick(r.h,H2) };
+}
+
+function renderFrame(){
+  const W = theme.canvas.width, H = theme.canvas.height;
+  if(cvEl.width !== W) cvEl.width = W;
+  if(cvEl.height !== H) cvEl.height = H;
+  ctx.fillStyle = theme.canvas.background || '#000';
+  ctx.fillRect(0,0,W,H);
+
+  for(const w of [...theme.widgets].sort((a,b)=>(a.z||0)-(b.z||0))){
+    if(w.hidden) continue;
+    if(w.visibleWhen && !condOk(w.visibleWhen, metrics)) continue;
+    const r = RENDERERS[w.type]; if(!r) continue;
+    const rect = resolveRect(w.rect, W, H);
+    const props = { ...r.defaults, ...(w.props||{}) };
+    for(const [alias,key] of Object.entries(w.bindings||{})){
+      if(key in metrics){
+        let mv = metrics[key];
+        if(SMOOTH.on && typeof mv==='number') mv = smoothTo(w.id+'|'+alias, mv);
+        props[alias] = mv;
+      }
+    }
+    try{ r.draw(ctx, rect, props, w.bindings||{}, metrics); }catch(e){}
+  }
+  drawSelection();
+  renderPreview();
+}
+
+// ==================== 选中框 / 拖拽 ====================
+let dragging = null;
+let guides = [];
+let GRID = 8;
+const HANDLE_HIT = 14;   // 右下角缩放命中半径（像素）
+const snapEnabled = () => { const t=$('snapToggle'); return (t? t.checked : true) && GRID > 0; };
+
+function canvasPoint(ev){
+  const rect = cvEl.getBoundingClientRect();
+  return {
+    x:(ev.clientX-rect.left) * (theme.canvas.width/rect.width),
+    y:(ev.clientY-rect.top)  * (theme.canvas.height/rect.height)
+  };
+}
+function hitTest(x,y){
+  for(const w of [...theme.widgets].sort((a,b)=>(b.z||0)-(a.z||0))){
+    if(w.hidden) continue;
+    if(w.visibleWhen && !condOk(w.visibleWhen, metrics)) continue;
+    const r = resolveRect(w.rect);
+    if(x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h) return w;
+  }
+  return null;
+}
+function drawSelection(){
+  document.querySelectorAll('.sel-box,.guide,.marquee').forEach(e=>e.remove());
+  const wrap = $('canvasWrap');
+  if(!wrap) return;
+
+  const cr0 = cvEl.getBoundingClientRect(), wr0 = wrap.getBoundingClientRect();
+  if(!cr0.width) return;
+  const sx0 = cr0.width/theme.canvas.width, sy0 = cr0.height/theme.canvas.height;
+
+  // 框选矩形
+  if(marquee){
+    const x0=Math.min(marquee.x0,marquee.x1), y0=Math.min(marquee.y0,marquee.y1);
+    const mw=Math.abs(marquee.x1-marquee.x0), mh=Math.abs(marquee.y1-marquee.y0);
+    const el=document.createElement('div');
+    el.className='marquee';
+    el.style.left=(cr0.left-wr0.left + x0*sx0)+'px';
+    el.style.top =(cr0.top -wr0.top  + y0*sy0)+'px';
+    el.style.width=(mw*sx0)+'px';
+    el.style.height=(mh*sy0)+'px';
+    wrap.appendChild(el);
+  }
+
+  // 所有选中的控件都画框
+  const ids = selIds();
+  for(const id of ids){
+    const w = theme.widgets.find(x=>x.id===id);
+    if(!w) continue;
+    const r = resolveRect(w.rect);
+    const box = document.createElement('div');
+    box.className = 'sel-box' + (ids.length>1 ? ' multi' : '');
+    box.style.left = (cr0.left-wr0.left + r.x*sx0)+'px';
+    box.style.top  = (cr0.top -wr0.top  + r.y*sy0)+'px';
+    box.style.width = (r.w*sx0)+'px';
+    box.style.height= (r.h*sy0)+'px';
+    if(ids.length===1){
+      const h=document.createElement('div'); h.className='handle'; box.appendChild(h);
+    }
+    wrap.appendChild(box);
+  }
+
+  const w = theme.widgets.find(x=>x.id===selected);
+  if(!w) return;
+  const cr = cvEl.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+  if(!cr.width) return;
+  const sx = cr.width/theme.canvas.width, sy = cr.height/theme.canvas.height;
+  const r = resolveRect(w.rect);
+
+  const box = document.createElement('div');
+  box.className='sel-box';
+  box.style.left = (cr.left-wr.left + r.x*sx)+'px';
+  box.style.top  = (cr.top -wr.top  + r.y*sy)+'px';
+  box.style.width = (r.w*sx)+'px';
+  box.style.height= (r.h*sy)+'px';
+  const h = document.createElement('div');
+  h.className='handle';
+  box.appendChild(h);
+  wrap.appendChild(box);
+
+  for(const g of guides){
+    const el = document.createElement('div');
+    el.className='guide '+g.dir;
+    if(g.dir==='v') el.style.left = (cr.left-wr.left + g.pos*sx)+'px';
+    else el.style.top = (cr.top-wr.top + g.pos*sy)+'px';
+    wrap.appendChild(el);
+  }
+}
+
+// ==================== 多选 ====================
+let selectedSet = new Set();
+function setSel(ids, additive){
+  if(!additive) selectedSet.clear();
+  const arr = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+  arr.forEach(i=>{ if(i) selectedSet.add(i); });
+  const all = [...selectedSet];
+  selected = all.length ? all[all.length-1] : null;
+}
+function selIds(){ return [...selectedSet]; }
+function selWidgets(){
+  return theme.widgets.filter(w=>selectedSet.has(w.id));
+}
+function updateSelHint(){
+  const h=$('selHint'); if(!h) return;
+  const n=selectedSet.size;
+  h.textContent = n===0 ? '未选中 · 框选或 Shift 点选可多选'
+    : n===1 ? `已选中 1 个 · 拖动移动 / 右下角缩放 / 方向键微调`
+    : `已选中 ${n} 个 · 可用对齐按钮批量对齐`;
+  const agEl=$('alignGroup');
+  if(agEl) agEl.querySelectorAll('button').forEach(b=>{ b.disabled = n<2; });
+}
+
+// ==================== 对齐 ====================
+function alignWidgets(mode){
+  const list = selWidgets();
+  if(list.length < 2) return;
+  pushUndo();
+  const items = list.map(w=>({ w, r: resolveRect(w.rect) }));
+
+  const minX = Math.min(...items.map(i=>i.r.x));
+  const maxX = Math.max(...items.map(i=>i.r.x + i.r.w));
+  const minY = Math.min(...items.map(i=>i.r.y));
+  const maxY = Math.max(...items.map(i=>i.r.y + i.r.h));
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+
+  for(const {w,r} of items){
+    let nx = r.x, ny = r.y;
+    if(mode==='left')    nx = minX;
+    if(mode==='right')   nx = maxX - r.w;
+    if(mode==='hcenter') nx = cx - r.w/2;
+    if(mode==='top')     ny = minY;
+    if(mode==='bottom')  ny = maxY - r.h;
+    if(mode==='vcenter') ny = cy - r.h/2;
+    w.rect = { x:Math.round(nx), y:Math.round(ny), w:Math.round(r.w), h:Math.round(r.h) };
+  }
+  renderFrame(); renderProps(); updateSelHint();
+  log('ok','已对齐 '+list.length+' 个控件');
+}
+
+// ==================== 层级 ====================
+function bumpZ(mode){
+  const list = selWidgets();
+  if(!list.length) return;
+  pushUndo();
+  const allZ = theme.widgets.map(w=>w.z||0);
+  const maxZ = allZ.length ? Math.max(...allZ) : 0;
+  const minZ = allZ.length ? Math.min(...allZ) : 0;
+
+  for(const w of list){
+    const z = w.z||0;
+    if(mode==='front') w.z = maxZ + 1;
+    else if(mode==='back') w.z = minZ - 1;
+    else if(mode==='up') w.z = z + 1;
+    else if(mode==='down') w.z = z - 1;
+  }
+  // 归一化，避免数值无限增长
+  const sorted=[...theme.widgets].sort((a,b)=>(a.z||0)-(b.z||0));
+  sorted.forEach((w,i)=>{ w.z = i; });
+
+  renderLayers(); renderFrame();
+  log('ok','层级已调整');
+}
+
+function applySnap(rect, id){
+  guides = [];
+  const W = theme.canvas.width, H = theme.canvas.height;
+  const S = 6;
+  const others = theme.widgets.filter(w=>w.id!==id).map(w=>resolveRect(w.rect));
+
+  const vT = [0, W/2, W];
+  others.forEach(o=>vT.push(o.x, o.x+o.w, o.x+o.w/2));
+  let bdx=null, bvx=null;
+  for(const t of vT) for(const e of [rect.x, rect.x+rect.w, rect.x+rect.w/2]){
+    const d = t-e;
+    if(Math.abs(d)<S && (bdx===null || Math.abs(d)<Math.abs(bdx))){ bdx=d; bvx=t; }
+  }
+  if(bdx!==null){ rect.x += bdx; guides.push({dir:'v', pos:bvx}); }
+  else if(snapEnabled()) rect.x = Math.round(rect.x/GRID)*GRID;
+
+  const hT = [0, H/2, H];
+  others.forEach(o=>hT.push(o.y, o.y+o.h, o.y+o.h/2));
+  let bdy=null, bhy=null;
+  for(const t of hT) for(const e of [rect.y, rect.y+rect.h, rect.y+rect.h/2]){
+    const d = t-e;
+    if(Math.abs(d)<S && (bdy===null || Math.abs(d)<Math.abs(bdy))){ bdy=d; bhy=t; }
+  }
+  if(bdy!==null){ rect.y += bdy; guides.push({dir:'h', pos:bhy}); }
+  else if(snapEnabled()) rect.y = Math.round(rect.y/GRID)*GRID;
+
+  return rect;
+}
+
+let marquee = null;   // {x0,y0,x1,y1}
+
+cvEl.addEventListener('pointerdown', ev => {
+  if(!$('page-editor').classList.contains('active')) return;
+  const p = canvasPoint(ev);
+  const hit = hitTest(p.x, p.y);
+  const additive = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+
+  // 空白处 -> 开始框选
+  if(!hit){
+    if(!additive) setSel([]);
+    marquee = { x0:p.x, y0:p.y, x1:p.x, y1:p.y, additive };
+    renderLayers(); renderProps(); drawSelection();
+    try{ cvEl.setPointerCapture(ev.pointerId); }catch(e){}
+    ev.preventDefault();
+    return;
+  }
+
+  // Shift/Ctrl 点选：切换该控件
+  if(additive){
+    if(selectedSet.has(hit.id)) selectedSet.delete(hit.id);
+    else selectedSet.add(hit.id);
+    const all=[...selectedSet];
+    selected = all.length? all[all.length-1] : null;
+    renderLayers(); renderProps(); drawSelection(); updateSelHint();
+    ev.preventDefault();
+    return;
+  }
+
+  // 普通点击：单选（若已在多选集合内则保留多选，便于整体拖动）
+  if(!selectedSet.has(hit.id)){
+    if(hit.group) setSel(theme.widgets.filter(x=>x.group===hit.group&&!x.hidden).map(x=>x.id));
+    else setSel(hit.id);
+  } else { selected = hit.id; }
+  renderLayers(); renderProps(); updateSelHint(); drawSelection();
+
+  // 锁定的控件：可以选中看属性，但不参与拖动/缩放
+  if(hit.locked){
+    log('warn', '该控件已锁定，右键可解锁');
+    ev.preventDefault();
+    return;
+  }
+
+  const r = resolveRect(hit.rect);
+  const nearHandle = (selectedSet.size===1) &&
+                     (p.x > r.x+r.w-HANDLE_HIT) && (p.y > r.y+r.h-HANDLE_HIT);
+
+  pushUndo();
+  // 多选时记录所有选中控件的初始位置
+  const group = selWidgets().map(w=>({ id:w.id, r:resolveRect(w.rect) }));
+  dragging = { mode: nearHandle?'resize':'move', id:hit.id,
+               startX:p.x, startY:p.y, orig:{...r}, group };
+  try{ cvEl.setPointerCapture(ev.pointerId); }catch(e){}
+  cvEl.style.cursor = nearHandle?'nwse-resize':'grabbing';
+  ev.preventDefault();
+});
+
+cvEl.addEventListener('contextmenu', ev => {
+  if(!$('page-editor').classList.contains('active')) return;
+  ev.preventDefault();
+  const p = canvasPoint(ev);
+  showCtx(ev.clientX, ev.clientY, hitTest(p.x, p.y));
+});
+document.addEventListener('pointerdown', ev => {
+  const m = $('ctxMenu');
+  if(m && m.style.display !== 'none' && !m.contains(ev.target)) closeCtx();
+}, true);
+window.addEventListener('blur', closeCtx);
+
+cvEl.addEventListener('pointermove', ev => {
+  // 框选中
+  if(marquee){
+    const p = canvasPoint(ev);
+    marquee.x1 = p.x; marquee.y1 = p.y;
+    drawSelection();
+    return;
+  }
+  if(!dragging){
+    if($('page-editor').classList.contains('active')){
+      const p = canvasPoint(ev);
+      const hit = hitTest(p.x,p.y);
+      if(hit){
+        const r = resolveRect(hit.rect);
+        cvEl.style.cursor = ((p.x>r.x+r.w-HANDLE_HIT)&&(p.y>r.y+r.h-HANDLE_HIT)) ? 'nwse-resize' : 'move';
+      } else cvEl.style.cursor = 'default';
+    }
+    return;
+  }
+
+  const p = canvasPoint(ev);
+  const dx = p.x-dragging.startX, dy = p.y-dragging.startY;
+  const w = theme.widgets.find(x=>x.id===dragging.id);
+  if(!w) return;
+
+  if(dragging.mode==='move'){
+    // 多选整体移动：先对主控件算位移，其余按同一位移走
+    const snapped = applySnap({x:dragging.orig.x+dx, y:dragging.orig.y+dy,
+                               w:dragging.orig.w, h:dragging.orig.h}, w.id);
+    let nx = Math.max(0, Math.min(theme.canvas.width -dragging.orig.w, snapped.x));
+    let ny = Math.max(0, Math.min(theme.canvas.height-dragging.orig.h, snapped.y));
+    const realDx = nx - dragging.orig.x;
+    const realDy = ny - dragging.orig.y;
+
+    for(const g of (dragging.group||[])){
+      const gw = theme.widgets.find(x=>x.id===g.id);
+      if(!gw) continue;
+      let gx = g.r.x + realDx;
+      let gy = g.r.y + realDy;
+      gx = Math.max(0, Math.min(theme.canvas.width - g.r.w, gx));
+      gy = Math.max(0, Math.min(theme.canvas.height- g.r.h, gy));
+      gw.rect = { x:Math.round(gx), y:Math.round(gy), w:Math.round(g.r.w), h:Math.round(g.r.h) };
+    }
+  } else {
+    let nw = Math.max(8, dragging.orig.w+dx);
+    let nh = Math.max(8, dragging.orig.h+dy);
+    if(snapEnabled()){ nw=Math.round(nw/GRID)*GRID; nh=Math.round(nh/GRID)*GRID; }
+    nw = Math.min(theme.canvas.width -dragging.orig.x, nw);
+    nh = Math.min(theme.canvas.height-dragging.orig.y, nh);
+    w.rect = { x:Math.round(dragging.orig.x), y:Math.round(dragging.orig.y), w:Math.round(nw), h:Math.round(nh) };
+  }
+
+  renderFrame(); renderProps();
+  ev.preventDefault();
+});
+
+function endDrag(ev){
+  // 框选结束：选中与矩形相交的控件
+  if(marquee){
+    const x0=Math.min(marquee.x0,marquee.x1), x1=Math.max(marquee.x0,marquee.x1);
+    const y0=Math.min(marquee.y0,marquee.y1), y1=Math.max(marquee.y0,marquee.y1);
+    const big = (x1-x0) > 4 || (y1-y0) > 4;
+    if(big){
+      if(!marquee.additive) selectedSet.clear();
+      for(const w of theme.widgets){
+        const r = resolveRect(w.rect);
+        const inter = !(r.x+r.w < x0 || r.x > x1 || r.y+r.h < y0 || r.y > y1);
+        if(inter) selectedSet.add(w.id);
+      }
+      const all=[...selectedSet];
+      selected = all.length? all[all.length-1] : null;
+    }
+    marquee = null;
+    try{ cvEl.releasePointerCapture(ev.pointerId); }catch(e){}
+    renderLayers(); renderProps(); renderFrame(); updateSelHint();
+    return;
+  }
+
+  if(!dragging) return;
+  dragging = null; guides = [];
+  cvEl.style.cursor='default';
+  try{ cvEl.releasePointerCapture(ev.pointerId); }catch(e){}
+  renderFrame(); renderLayers(); markDirty();
+}
+cvEl.addEventListener('pointerup', endDrag);
+cvEl.addEventListener('pointercancel', endDrag);
+
+// ==================== 控件库 / 图层 / 属性 ====================
+function buildPalette(){
+  const box=$('palette'); box.innerHTML='';
+  for(const item of PALETTE_ITEMS){
+    const b=document.createElement('button');
+    b.textContent=item.name;
+    b.title=item.tip||'';
+    b.onclick=()=>onPaletteClick(item);
+    box.appendChild(b);
+  }
+}
+
+function onPaletteClick(item){
+  if(item.kind==='widget'){
+    addWidget(item.key);
+    return;
+  }
+  if(item.kind==='media'){
+    // 图片/视频合并入口：选完文件按类型自动插入
+    if(window.__pickMedia) window.__pickMedia(null, null);
+    return;
+  }
+  if(item.kind==='bg'){
+    // 背景：已有就选中它，没有就选文件
+    const bg = theme.widgets.find(w=>w.type==='bgImage');
+    if(bg){
+      setSel(bg.id);
+      renderLayers(); renderProps(); renderFrame(); updateSelHint();
+      log('ok','已选中背景图（在属性面板可更换或调压暗）');
+    } else {
+      if(window.__pickMedia) window.__pickMedia('bgImage', null);
+    }
+    return;
+  }
+}
+function addWidget(type){
+  pushUndo();
+  const id='w'+Date.now().toString(36).slice(-5);
+  const r=RENDERERS[type];
+  const zs=theme.widgets.map(w=>w.z||0);
+  const maxZ=zs.length?Math.max(...zs):0;
+  const minZ=zs.length?Math.min(...zs):0;
+
+  let rect={x:72,y:72,w:176,h:96};
+  let z=maxZ+1;
+
+  // 背景类控件：铺满画布 + 压到最底层 + 全局唯一
+  if(type==='bgImage'){
+    // 已有背景 -> 复用那个，不新增
+    const existing = theme.widgets.find(w=>w.type==='bgImage');
+    if(existing){
+      existing.rect = { x:0, y:0, w:theme.canvas.width, h:theme.canvas.height };
+      setSel(existing.id);
+      renderLayers(); renderProps(); renderFrame(); markDirty();
+      log('warn','已有背景图，已选中它（如需更换请点属性里的「更换」）');
+      return;
+    }
+    rect={x:0,y:0,w:theme.canvas.width,h:theme.canvas.height};
+    z=minZ-1;
+  }
+
+  theme.widgets.push({ id, type, rect, props:{...r.defaults}, z });
+  setSel(id);
+  renderLayers(); renderProps(); renderFrame(); markDirty();
+  log('ok','已添加 '+r.name + (type==='bgImage' ? '（已置底铺满）' : ''));
+}
+function renderLayers(){
+  const box=$('layers'); box.innerHTML='';
+  // 背景图不进图层列表（铺满全屏会挡住操作，统一从「背景图」按钮管理）
+  const list = theme.widgets.filter(w=>w.type!=='bgImage')
+                            .sort((a,b)=>(b.z||0)-(a.z||0));
+  for(const w of list){
+    const d=document.createElement('div');
+    d.className='layer'+(w.id===selected?' sel':'');
+    d.draggable=true;
+    const nm=document.createElement('span'); nm.className='lnm';
+    nm.textContent=(RENDERERS[w.type]||{name:w.type}).name;
+    const lid=document.createElement('span'); lid.className='lid'; lid.textContent='z'+(w.z||0);
+    const bl=document.createElement('button');
+    bl.className='lbtn'+(w.locked?' on':''); bl.textContent='锁'; bl.title='锁定（不可拖动）';
+    bl.onclick=(ev)=>{ ev.stopPropagation(); w.locked=!w.locked; renderLayers(); renderProps(); renderFrame(); markDirty(); };
+    const bh=document.createElement('button');
+    bh.className='lbtn'+(w.hidden?' on':''); bh.textContent='隐'; bh.title='隐藏（不渲染）';
+    bh.onclick=(ev)=>{ ev.stopPropagation(); w.hidden=!w.hidden; renderLayers(); renderProps(); renderFrame(); markDirty(); };
+    d.appendChild(nm); d.appendChild(lid); d.appendChild(bl); d.appendChild(bh);
+    d.onclick=(ev)=>{
+      // 同步 selectedSet，否则删除按钮拿不到选中项
+      if(ev.shiftKey || ev.ctrlKey || ev.metaKey){
+        if(selectedSet.has(w.id)) selectedSet.delete(w.id);
+        else selectedSet.add(w.id);
+        const all=[...selectedSet];
+        selected = all.length? all[all.length-1] : null;
+      } else {
+        setSel(w.id);
+      }
+      renderLayers(); renderProps(); renderFrame(); updateSelHint();
+    };
+
+    d.ondragstart=e=>{ e.dataTransfer.setData('text/plain',w.id); d.classList.add('dragging'); };
+    d.ondragend=()=>d.classList.remove('dragging');
+    d.ondragover=e=>{ e.preventDefault(); d.classList.add('drop-target'); };
+    d.ondragleave=()=>d.classList.remove('drop-target');
+    d.ondrop=e=>{
+      e.preventDefault(); d.classList.remove('drop-target');
+      const srcId=e.dataTransfer.getData('text/plain');
+      if(!srcId || srcId===w.id) return;
+      const src=theme.widgets.find(x=>x.id===srcId);
+      if(!src) return;
+      pushUndo();
+      const tz=w.z||0; w.z=src.z||0; src.z=tz;
+      renderLayers(); renderFrame();
+    };
+    box.appendChild(d);
+  }
+}
+
+function renderProps(){
+  const box=$('props');
+  const multi = selWidgets();
+  if(multi.length > 1){ renderBatchProps(multi, box); return; }
+  const w=theme.widgets.find(x=>x.id===selected);
+  if(!w){ box.innerHTML='<div class="hint">未选中控件<br>在画布上点击或用图层面板选择</div>'; return; }
+  const r=RENDERERS[w.type];
+  box.innerHTML='<div class="hint">'+r.name+' · '+w.id+'</div>';
+
+  const row=(label,el)=>{
+    const d=document.createElement('div'); d.className='row';
+    const l=document.createElement('label'); l.textContent=label;
+    d.appendChild(l); d.appendChild(el); box.appendChild(d); return d;
+  };
+  const rectNum=(label,key,min)=>{
+    const rr=resolveRect(w.rect);
+    const inp=document.createElement('input');
+    inp.type='number'; inp.value=Math.round(rr[key]);
+    if(min!==undefined) inp.min=min;
+    inp.onchange=()=>{
+      pushUndo();
+      const cur=resolveRect(w.rect);
+      const v=Number(inp.value)||0;
+      w.rect={ x:key==='x'?v:cur.x, y:key==='y'?v:cur.y,
+               w:key==='w'?Math.max(4,v):cur.w, h:key==='h'?Math.max(4,v):cur.h };
+      renderFrame(); drawSelection(); markDirty();
+    };
+    row(label,inp);
+  };
+  rectNum('X','x'); rectNum('Y','y'); rectNum('宽','w',4); rectNum('高','h',4);
+
+  {
+    const sec=document.createElement('div'); sec.className='prop-sec'; sec.textContent='控件状态';
+    box.appendChild(sec);
+    const chk=(label,key)=>{
+      const wrap=document.createElement('label'); wrap.className='chk-row';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!w[key];
+      cb.onchange=()=>{ w[key]=cb.checked; renderLayers(); renderFrame(); markDirty(); };
+      const sp=document.createElement('span'); sp.textContent=label;
+      wrap.appendChild(cb); wrap.appendChild(sp); box.appendChild(wrap);
+    };
+    chk('锁定（不可拖动）','locked');
+    chk('隐藏（不渲染）','hidden');
+    const inp=document.createElement('input');
+    inp.type='text'; inp.placeholder='cpu.temp>80  （留空=始终显示）';
+    inp.value=w.visibleWhen||'';
+    inp.onchange=()=>{ w.visibleWhen=inp.value.trim(); renderFrame(); markDirty(); };
+    row('显示条件', inp);
+  }
+
+  for(const s of r.schema){
+    let inp;
+    if(s.t==='select'){
+      inp=document.createElement('select');
+      for(const [n,v] of s.options){
+        const o=document.createElement('option'); o.value=v; o.textContent=n; inp.appendChild(o);
+      }
+      inp.value=String(w.props[s.k]??'');
+      inp.onchange=()=>{ pushUndo(); w.props[s.k]=inp.value; renderFrame(); };
+      row(s.n,inp);
+      continue;
+    }
+
+    // 图片 / 视频：缩略图 + 选择按钮 + 尺寸信息
+    if(s.t==='image' || s.t==='video'){
+      const holder=document.createElement('div');
+      holder.className='media-btn-row';
+
+      const cur = w.props.src;
+      if(cur){
+        if(s.t==='image'){
+          const img=document.createElement('img');
+          img.className='thumb'; img.src=cur;
+          holder.appendChild(img);
+        } else {
+          const v=document.createElement('video');
+          v.className='thumb'; v.src=cur; v.muted=true; v.playsInline=true;
+          holder.appendChild(v);
+        }
+      }
+
+      const btn=document.createElement('button');
+      btn.className='ghost';
+      btn.textContent = cur ? '更换' : (w.type==='bgImage' ? '选择背景' : '选择文件');
+      btn.onclick=()=>{
+        if(window.__pickMedia) window.__pickMedia(w.type, w);
+      };
+      holder.appendChild(btn);
+
+      if(cur){
+        const meta=document.createElement('span');
+        meta.className='meta';
+        meta.textContent = Math.round(cur.length*0.75/1024)+' KB';
+        holder.appendChild(meta);
+
+        const clr=document.createElement('button');
+        clr.className='ghost'; clr.textContent='清除';
+        clr.onclick=()=>{ pushUndo(); w.props.src=''; renderProps(); renderFrame(); };
+        holder.appendChild(clr);
+      }
+
+      row(s.n, holder);
+      continue;
+    }
+
+    // 滑块
+    if(s.t==='range'){
+      const holder=document.createElement('div');
+      holder.style.cssText='display:flex;align-items:center;gap:8px;flex:1;min-width:0';
+      const rng=document.createElement('input');
+      rng.type='range';
+      rng.min=s.min??0; rng.max=s.max??1; rng.step=s.step??0.01;
+      rng.value=w.props[s.k]??s.max??1;
+      rng.style.flex='1';
+      const num=document.createElement('span');
+      num.style.cssText='width:42px;text-align:right;font-family:ui-monospace,monospace;font-size:11px';
+      num.textContent=Number(rng.value).toFixed(2);
+      rng.oninput=()=>{ num.textContent=Number(rng.value).toFixed(2); };
+      rng.onchange=()=>{ pushUndo(); w.props[s.k]=Number(rng.value); renderProps(); renderFrame(); };
+      holder.appendChild(rng); holder.appendChild(num);
+      row(s.n, holder);
+      continue;
+    }
+
+    // 字体：字族下拉 + 字号 + B/I
+    if(s.t==='font'){
+      const holder=document.createElement('div');
+      holder.className='font-row';
+      const f=parseFont(w.props[s.k]);
+      const famSel=document.createElement('select');
+      const fams=FONT_FAMS.slice();
+      if(fams.indexOf(f.family)<0) fams.unshift(f.family);
+      for(const fm of fams){
+        const o=document.createElement('option'); o.value=fm; o.textContent=fm; famSel.appendChild(o);
+      }
+      famSel.value=f.family;
+      const size=document.createElement('input');
+      size.type='number'; size.min=6; size.max=96; size.value=f.size;
+      const bB=document.createElement('button');
+      bB.className='ghost toggle'+(f.bold?' on':''); bB.textContent='B'; bB.title='粗体';
+      const bI=document.createElement('button');
+      bI.className='ghost toggle'+(f.italic?' on':''); bI.textContent='I'; bI.title='斜体';
+      bI.style.fontStyle='italic';
+      const apply=()=>{
+        pushUndo();
+        w.props[s.k]=buildFont({ bold:f.bold, italic:f.italic,
+                                 size:Number(size.value)||16, family:famSel.value });
+        renderFrame(); markDirty();
+      };
+      famSel.onchange=apply;
+      size.onchange=apply;
+      bB.onclick=()=>{ f.bold=!f.bold; bB.classList.toggle('on',f.bold); apply(); };
+      bI.onclick=()=>{ f.italic=!f.italic; bI.classList.toggle('on',f.italic); apply(); };
+      holder.appendChild(famSel); holder.appendChild(size);
+      holder.appendChild(bB); holder.appendChild(bI);
+      row(s.n, holder);
+      continue;
+    }
+
+    // 普通输入
+    inp=document.createElement('input');
+    inp.type=s.t;
+    inp.value=String(w.props[s.k]??'');
+    inp.onchange=()=>{ pushUndo(); w.props[s.k]= s.t==='number'? Number(inp.value) : inp.value; renderFrame(); };
+    row(s.n,inp);
+  }
+
+  const sec=document.createElement('div');
+  sec.className='prop-sec'; sec.textContent='数据与预警';
+  box.appendChild(sec);
+
+  const bs=document.createElement('select');
+  bs.innerHTML='<option value="">（不绑定）</option>';
+  for(const [key,label] of METRIC_LIST){
+    const op=document.createElement('option'); op.value=key;
+    op.textContent=label+'  '+key; bs.appendChild(op);
+  }
+  bs.value=(w.bindings&&w.bindings.value)||'';
+  bs.onchange=()=>{
+    pushUndo();
+    w.bindings = bs.value ? {value:bs.value} : {};
+    smoothReset(); renderFrame(); markDirty();
+  };
+  row('绑定指标',bs);
+
+  // ---- 阈值预警：只给吃数值的控件显示 ----
+  const numeric = r.schema.some(x=>x.k==='value') || w.type==='text' || w.type==='sparkline';
+  if(numeric){
+    const mk=(label,key,kind,def)=>{
+      const inp=document.createElement('input');
+      inp.type=kind;
+      if(kind==='color'){
+        inp.value=(w.props[key]!==undefined&&w.props[key]!=='')?w.props[key]:def;
+      } else {
+        const cur=w.props[key];
+        inp.value=(cur===undefined||cur===null)?'':String(cur);
+        inp.placeholder='关闭';
+        inp.min=0; inp.max=999; inp.step=1;
+      }
+      inp.onchange=()=>{
+        pushUndo();
+        if(kind==='number'){
+          w.props[key] = (inp.value===''? '' : Number(inp.value));
+        } else w.props[key]=inp.value;
+        renderFrame(); markDirty();
+      };
+      row(label,inp);
+    };
+    mk('警戒值','thWarn','number');
+    mk('警戒色','thWarnColor','color','#f59e0b');
+    mk('危险值','thDanger','number');
+    mk('危险色','thDangerColor','color','#ef4444');
+  }
+
+  const zs=document.createElement('input');
+  zs.type='number'; zs.value=w.z||0;
+  zs.onchange=()=>{ pushUndo(); w.z=Number(zs.value)||0; renderLayers(); renderFrame(); };
+  row('层级',zs);
+
+  const del=document.createElement('button');
+  del.textContent='删除控件'; del.style.marginTop='10px'; del.style.width='100%';
+  del.onclick=()=>{
+    pushUndo();
+    theme.widgets=theme.widgets.filter(x=>x.id!==w.id);
+    selected=null; renderLayers(); renderProps(); renderFrame();
+  };
+  box.appendChild(del);
+}
+
+
+// ==================== 批量属性（多选） ====================
+function renderBatchProps(list, box){
+  const types=[...new Set(list.map(w=>w.type))];
+  box.innerHTML='<div class="hint">已选 '+list.length+' 个控件'+
+    (types.length>1 ? '（'+types.length+' 种类型，只列出共有属性）' : '')+
+    '<br>改动会应用到全部选中控件</div>';
+  const row=(label,el)=>{
+    const d=document.createElement('div'); d.className='row';
+    const l=document.createElement('label'); l.textContent=label;
+    d.appendChild(l); d.appendChild(el); box.appendChild(d); return d;
+  };
+
+  // 对齐
+  const al=document.createElement('div'); al.className='btn-grid';
+  [['左','left'],['横中','hcenter'],['右','right'],
+   ['上','top'],['纵中','vcenter'],['下','bottom']].forEach(([nm,m])=>{
+    const b=document.createElement('button'); b.className='ghost'; b.textContent=nm;
+    b.onclick=()=>{ alignWidgets(m); renderProps(); };
+    al.appendChild(b);
+  });
+  row('对齐', al);
+
+  // 层级
+  const zl=document.createElement('div'); zl.className='btn-grid';
+  [['置顶','front'],['上移','up'],['下移','down'],
+   ['置底','back'],['均匀横铺','spreadH'],['均匀纵铺','spreadV']].forEach(([nm,m])=>{
+    const b=document.createElement('button'); b.className='ghost'; b.textContent=nm;
+    b.onclick=()=>{
+      if(m==='spreadH'||m==='spreadV') spreadWidgets(m==='spreadH');
+      else bumpZ(m);
+      renderProps();
+    };
+    if(m==='spreadH'||m==='spreadV') b.disabled = list.length<3;
+    zl.appendChild(b);
+  });
+  row('层级/分布', zl);
+
+  // 共有属性
+  let common=null;
+  for(const w of list){
+    const rr=RENDERERS[w.type];
+    const keys=rr?rr.schema.map(x=>x.k):[];
+    common = common===null ? keys.slice() : common.filter(k=>keys.indexOf(k)>=0);
+  }
+  common=common||[];
+  const skip={src:1, quality:1};
+  let shown=0;
+  for(const k of common){
+    if(skip[k]) continue;
+    const sc=list.map(w=>RENDERERS[w.type].schema.find(x=>x.k===k)).find(Boolean);
+    if(!sc) continue;
+    if(sc.t==='image'||sc.t==='video'||sc.t==='font') continue;
+    let ctl;
+    if(sc.t==='select'){
+      ctl=document.createElement('select');
+      const o0=document.createElement('option'); o0.value=''; o0.textContent='（不变）';
+      ctl.appendChild(o0);
+      (sc.options||[]).forEach(([nm,v])=>{
+        const o=document.createElement('option'); o.value=v; o.textContent=nm; ctl.appendChild(o);
+      });
+      ctl.onchange=()=>{
+        if(ctl.value==='') return;
+        pushUndo();
+        list.forEach(w=>{ w.props=w.props||{}; w.props[k]=ctl.value; });
+        renderFrame(); markDirty();
+      };
+    } else if(sc.t==='range'){
+      ctl=document.createElement('div');
+      ctl.style.cssText='display:flex;align-items:center;gap:8px;flex:1;min-width:0';
+      const rng=document.createElement('input');
+      rng.type='range';
+      rng.min=sc.min??0; rng.max=sc.max??1; rng.step=sc.step??0.01;
+      rng.value=sc.max??1; rng.style.flex='1';
+      const num=document.createElement('span');
+      num.style.cssText='width:42px;text-align:right;font-family:ui-monospace,monospace;font-size:11px';
+      num.textContent=Number(rng.value).toFixed(2);
+      rng.oninput=()=>{ num.textContent=Number(rng.value).toFixed(2); };
+      rng.onchange=()=>{
+        pushUndo();
+        list.forEach(w=>{ w.props=w.props||{}; w.props[k]=Number(rng.value); });
+        renderFrame(); markDirty();
+      };
+      ctl.appendChild(rng); ctl.appendChild(num);
+    } else {
+      ctl=document.createElement('input');
+      ctl.type = sc.t==='color' ? 'color' : (sc.t==='number' ? 'number' : 'text');
+      const vals=list.map(w=>(w.props||{})[k]);
+      const same=vals.every(v=>String(v)===String(vals[0]));
+      if(sc.t==='color') ctl.value=(same && vals[0]) ? vals[0] : '#22d3ee';
+      else if(same && vals[0]!==undefined && vals[0]!==null) ctl.value=String(vals[0]);
+      if(!same && sc.t!=='color') ctl.placeholder='（多值）';
+      ctl.onchange=()=>{
+        pushUndo();
+        list.forEach(w=>{
+          w.props=w.props||{};
+          w.props[k] = sc.t==='number' ? Number(ctl.value) : ctl.value;
+        });
+        renderFrame(); markDirty();
+      };
+    }
+    row(sc.n, ctl);
+    shown++;
+  }
+  if(!shown){
+    const sp=document.createElement('span'); sp.className='hint';
+    sp.textContent='这些控件没有共同属性';
+    row('提示', sp);
+  }
+
+  // 批量绑定
+  const bs=document.createElement('select');
+  bs.innerHTML='<option value="">（不变）</option>';
+  for(const [key,label] of METRIC_LIST){
+    const o=document.createElement('option'); o.value=key;
+    o.textContent=label+'  '+key; bs.appendChild(o);
+  }
+  bs.value='';
+  bs.onchange=()=>{
+    if(!bs.value) return;
+    pushUndo();
+    list.forEach(w=>{ w.bindings={value:bs.value}; });
+    smoothReset(); renderFrame(); markDirty();
+  };
+  row('绑定指标',bs);
+
+  const del=document.createElement('button');
+  del.textContent='删除选中 '+list.length+' 个';
+  del.style.marginTop='10px'; del.style.width='100%';
+  del.onclick=()=>{
+    pushUndo();
+    const gone=new Set(list.map(w=>w.id));
+    theme.widgets=theme.widgets.filter(w=>!gone.has(w.id));
+    selectedSet.clear(); selected=null;
+    renderLayers(); renderProps(); renderFrame(); markDirty();
+  };
+  box.appendChild(del);
+}
+
+// 均匀分布（横向/纵向平铺首尾之间）
+function spreadWidgets(horiz){
+  const list=selWidgets();
+  if(list.length<3) return;
+  pushUndo();
+  const items=list.map(w=>({w, r:resolveRect(w.rect)}))
+    .sort((a,b)=> horiz ? (a.r.x+a.r.w/2)-(b.r.x+b.r.w/2)
+                        : (a.r.y+a.r.h/2)-(b.r.y+b.r.h/2));
+  const first=items[0], last=items[items.length-1];
+  const startC = horiz ? first.r.x+first.r.w/2 : first.r.y+first.r.h/2;
+  const endC   = horiz ? last.r.x+last.r.w/2  : last.r.y+last.r.h/2;
+  const step=(endC-startC)/(items.length-1);
+  items.forEach((it,i)=>{
+    const c=startC+step*i;
+    it.w.rect = horiz
+      ? { x:Math.round(c-it.r.w/2), y:Math.round(it.r.y), w:Math.round(it.r.w), h:Math.round(it.r.h) }
+      : { x:Math.round(it.r.x), y:Math.round(c-it.r.h/2), w:Math.round(it.r.w), h:Math.round(it.r.h) };
+  });
+  renderFrame();
+  log('ok','已均匀分布 '+items.length+' 个控件');
+}
+
+
+// ==================== 复制 / 粘贴 ====================
+let CLIP = null;
+function copySel(){
+  const list=selWidgets();
+  if(!list.length) return;
+  CLIP=JSON.parse(JSON.stringify(list));
+  log('ok','已复制 '+list.length+' 个控件');
+}
+function pasteSel(){
+  if(!CLIP || !CLIP.length) return;
+  pushUndo();
+  const ids=[];
+  const base=Date.now().toString(36).slice(-4);
+  CLIP.forEach((src,i)=>{
+    const c=JSON.parse(JSON.stringify(src));
+    c.id='w'+base+Math.random().toString(36).slice(2,5);
+    const r=resolveRect(c.rect);
+    c.rect={ x:Math.round(r.x+10), y:Math.round(r.y+10),
+             w:Math.round(r.w),   h:Math.round(r.h) };
+    c.z=(c.z||0)+1;
+    theme.widgets.push(c);
+    ids.push(c.id);
+  });
+  setSel(ids);
+  renderLayers(); renderFrame(); renderProps(); markDirty();
+  log('ok','已粘贴 '+ids.length+' 个控件');
+}
+
+// ==================== 主题文件导入 / 导出 ====================
+function exportThemeFile(){
+  try{
+    const name=((($('themeName')&&$('themeName').value)||theme.name||'theme')+'').trim()||'theme';
+    const t=JSON.parse(JSON.stringify(theme));
+    t.meta=Object.assign({},t.meta||{},{app:'Coolleo Studio',schema:1,exportedAt:new Date().toISOString()});
+    const pack={format:'coolleo-theme',version:1,meta:t.meta,theme:t};
+    const blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=name.replace(/[\\/:*?"<>|]/g,'_')+'.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500);
+    log('ok','已导出 '+a.download);
+  }catch(e){ log('error','导出失败：'+e.message); }
+}
+
+function normalizeTheme(t){
+  if(t && t.format==='coolleo-theme' && t.theme) t=t.theme;
+  const out=Object.assign({
+    name:'', category:'custom', canvas:{width:320,height:240,fps:20,background:'#000000'},
+    widgets:[]
+  }, t||{});
+  out.canvas=Object.assign({width:320,height:240,fps:20,background:'#000000'}, t&&t.canvas||{});
+  out.widgets=(t&&Array.isArray(t.widgets)?t.widgets:[]).map((w,i)=>{
+    const c=Object.assign({}, w);
+    if(!c.id) c.id='w'+(Date.now().toString(36).slice(-4))+i;
+    if(typeof c.z!=='number') c.z=i;
+    c.props=c.props||{};
+    c.bindings=c.bindings||{};
+    if(!c.group) delete c.group;
+    return c;
+  });
+  out.meta=Object.assign({app:'Coolleo Studio',schema:1,author:'',version:1},(t&&t.meta)||{});
+  const badType=[], badBind=[];
+  out.widgets.forEach(w=>{
+    if(!RENDERERS[w.type]) badType.push(String(w.type));
+    Object.keys(w.bindings||{}).forEach(a=>{
+      const k=w.bindings[a];
+      if(k && !METRIC_LIST.some(m=>m[0]===k)) badBind.push(a+' \u2192 '+k);
+    });
+  });
+  window.__lastImportReport={badType:[...new Set(badType)],badBind:[...new Set(badBind)]};
+  return out;
+}
+function applyImportedTheme(t, label){
+  pushUndo();
+  theme=normalizeTheme(t);
+  selectedSet.clear(); selected=null;
+  smoothReset();
+  bindCanvasSettings();
+  renderLayers(); renderFrame(); renderProps(); updateSelHint();
+  if($('themeName')) $('themeName').value = theme.name || label || '';
+  markDirty();
+  syncThemeToBackend(true);
+  log('ok','已导入主题：'+(theme.name||label||'未命名')+'（'+theme.widgets.length+' 个控件）');
+}
+
+// ==================== 网格 / 平滑 / 文件按钮 ====================
+function bindThemeEnhancements(){
+  const sn=$('snapSize');
+  if(sn){
+    sn.value=GRID;
+    sn.onchange=()=>{
+      const v=Math.max(0,Math.min(40,Number(sn.value)||0));
+      GRID=v; sn.value=v;
+      log('ok', v>0 ? '吸附网格 '+v+'px' : '已关闭网格吸附');
+    };
+  }
+  const sm=$('smoothOn');
+  if(sm){
+    sm.checked=SMOOTH.on;
+    sm.onchange=()=>{
+      SMOOTH.on=sm.checked;
+      smoothReset();
+      renderFrame();
+      log('ok', sm.checked?'数值平滑已开启':'数值平滑已关闭');
+    };
+  }
+  const ex=$('btnExportTheme');
+  if(ex) ex.onclick=exportThemeFile;
+
+  const im=$('btnImportTheme'), fi=$('themeFile');
+  if(im && fi){
+    im.onclick=()=>fi.click();
+    fi.onchange=()=>{
+      const f=fi.files && fi.files[0];
+      if(!f) return;
+      const rd=new FileReader();
+      rd.onload=()=>{
+        try{
+          let t=JSON.parse(rd.result);
+          if(t && t.format==='coolleo-theme' && t.theme){
+            if(Number(t.version)>1) log('warn','主题包版本 '+t.version+' 高于本程序，部分属性可能被忽略');
+            t=t.theme;
+          }
+          if(!t || !Array.isArray(t.widgets)) throw new Error('不是有效的主题文件（缺少 widgets 数组）');
+          applyImportedTheme(t, f.name.replace(/\.json$/i,''));
+          const rp=window.__lastImportReport||{};
+          if(rp.badType&&rp.badType.length) log('warn','有 '+rp.badType.length+' 种不支持的控件（'+rp.badType.join('、')+'），导入后不会显示');
+          if(rp.badBind&&rp.badBind.length) log('warn','有 '+rp.badBind.length+' 个绑定指向本机没有的指标（'+rp.badBind.slice(0,3).join('、')+'），将显示为「无值」');
+        }catch(err){ log('error','导入失败：'+err.message); }
+        fi.value='';
+      };
+      rd.onerror=()=>{ log('error','读取文件失败'); fi.value=''; };
+      rd.readAsText(f,'utf-8');
+    };
+  }
+  startSmoothLoop();
+}
+
+// 数值缓动需要比指标轮询（1Hz）更高的重绘频率，这里按 20fps 跑
+let smoothLoopStarted=false;
+function startSmoothLoop(){
+  if(smoothLoopStarted) return;
+  smoothLoopStarted=true;
+  let last=0;
+  const tick=()=>{
+    requestAnimationFrame(tick);
+    if(!SMOOTH.on || document.hidden) return;
+    const pg=$('page-editor');
+    if(!pg || !pg.classList.contains('active')) return;
+    const now=performance.now();
+    if(now-last < 50) return;
+    last=now;
+    if(!theme || !Array.isArray(theme.widgets) || !theme.widgets.length) return;
+    if(!theme.widgets.some(w=>w.bindings && Object.keys(w.bindings).length)) return;
+    try{ renderFrame(); }catch(e){}
+  };
+  requestAnimationFrame(tick);
+}
+
+// ==================== 通信 ====================
+async function api(path, opts){
+  try{ const r = await fetch(path, opts); return await r.json(); }
+  catch(e){ log('error','后台未响应：'+e.message); return null; }
+}
+
+const BUSY = new Set();
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const MIN_BUSY_MS = 320;
+function setBusy(id,text){
+  const b=$(id); if(!b) return;
+  BUSY.add(id); b.disabled=true; b.classList.add('is-busy');
+  if(text) b.textContent=text;
+}
+function clearBusy(id,text){
+  const b=$(id); BUSY.delete(id); if(!b) return;
+  b.classList.remove('is-busy');
+  if(text) b.textContent=text;
+}
+async function endBusy(t0, ids, texts){
+  const wait=Math.max(0, MIN_BUSY_MS-(Date.now()-t0));
+  if(wait) await sleep(wait);
+  ids.forEach((id,i)=>clearBusy(id, texts?texts[i]:undefined));
+  refreshStatus();
+}
+
+function applyState(s){
+  if(!s) return;
+  const open=!!s.open, capture=!!s.capture, webPush=!!s.pushing;
+
+  $('st').textContent = open?'已连接':'未连接';
+  $('badge').className = 'badge '+(open?'on':'off');
+  $('badge').textContent = open?'ON':'OFF';
+  $('stats').textContent = `帧=${s.frames} 包=${s.packets} 字节=${(s.bytes/1048576).toFixed(1)}MB 错误=${s.errors}`;
+
+  if(capture && pushing){
+    clearInterval(pushTimer); pushTimer=null; pushing=false;
+    log('warn','副屏已接管屏幕，主题推送自动停止');
+  }
+
+  if(!BUSY.has('btnConn')){ $('btnConn').disabled=open; $('btnConn').textContent='连接设备'; }
+  if(!BUSY.has('btnDisc')){ $('btnDisc').disabled=!open; $('btnDisc').textContent='断开'; }
+  if(!BUSY.has('btnRefresh')){ $('btnRefresh').textContent='刷新状态'; }
+  if(!BUSY.has('btnCap')){ $('btnCap').disabled=!open||capture; $('btnCap').textContent='开启副屏'; }
+  if(!BUSY.has('btnCapOff')){ $('btnCapOff').disabled=!capture; $('btnCapOff').textContent='关闭'; }
+  if(!BUSY.has('btnCapPause')){
+    $('btnCapPause').disabled=!capture;
+    $('btnCapPause').textContent = s.paused?'继续':'暂停';
+  }
+  if(!BUSY.has('btnPush')){
+    $('btnPush').disabled=!open||capture;
+    $('btnPush').textContent = pushing?'停止推送':'开始推送到屏幕';
+  }
+  if(!BUSY.has('btnOnce')){ $('btnOnce').disabled=!open||capture; $('btnOnce').textContent='渲染一帧'; }
+
+  const engine=s.dxgi?'DXGI':'GDI';
+  const modeText=s.captureMode===1?'窗口':'显示器';
+  $('capHint').className='hint'+(capture?' ok':'');
+  $('capHint').textContent = !open ? '请先连接设备'
+    : capture ? `副屏运行中 · ${modeText} · ${engine}${s.paused?' · 已暂停':''} · 主题推送已暂停`
+    : (webPush ? '主题推送中，开启副屏会接管屏幕' : '副屏已关闭，当前显示内置仪表盘');
+
+  $('homeHint').textContent = !open ? '设备未连接'
+    : capture ? '副屏接管中'
+    : webPush ? '正在推送你的主题'
+    : '正在推送内置仪表盘';
+  $('homeHint').className='hint'+((open&&(capture||webPush))?' ok':'');
+}
+
+async function refreshStatus(){
+  const s = await api('/api/status');
+  if(s) applyState(s);
+}
+
+// ==================== 帧推送 ====================
+const rotCv=document.createElement('canvas');
+rotCv.width=240; rotCv.height=320;
+const rotCtx=rotCv.getContext('2d',{alpha:false});
+function rotate90(src){
+  rotCtx.save();
+  rotCtx.fillStyle='#000'; rotCtx.fillRect(0,0,rotCv.width,rotCv.height);
+  rotCtx.translate(rotCv.width,0); rotCtx.rotate(Math.PI/2);
+  rotCtx.drawImage(src,0,0);
+  rotCtx.restore();
+  return rotCv;
+}
+
+let lastSig=null, lastQ=0.88, skippedFrames=0, sentFrames=0, skipSinceSend=0;
+let lastSendAt=0;          // 上次真正发出帧的时间（保活用）
+const KEEPALIVE_MS = 1500; // 至少每 1.5 秒发一帧，防止后端判定停推
+let TARGET_BYTES=13000;
+const DIFF_THRESHOLD=1.2;
+
+const sigCv=document.createElement('canvas');
+sigCv.width=16; sigCv.height=12;
+const sigCtx=sigCv.getContext('2d',{alpha:false, willReadFrequently:true});
+function makeSignature(){
+  sigCtx.drawImage(cvEl,0,0,16,12);
+  const d=sigCtx.getImageData(0,0,16,12).data;
+  const a=new Uint8Array(16*12*3);
+  for(let i=0,j=0;i<d.length;i+=4,j+=3){ a[j]=d[i]; a[j+1]=d[i+1]; a[j+2]=d[i+2]; }
+  return a;
+}
+function sigDiff(a,b){
+  if(!a||!b||a.length!==b.length) return 255;
+  let s=0; for(let i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]);
+  return s/a.length;
+}
+function adaptQuality(bytes){
+  if(bytes>TARGET_BYTES*1.3) lastQ=Math.max(0.45,lastQ-0.07);
+  else if(bytes>TARGET_BYTES*1.1) lastQ=Math.max(0.45,lastQ-0.03);
+  else if(bytes<TARGET_BYTES*0.55) lastQ=Math.min(0.93,lastQ+0.04);
+  else if(bytes<TARGET_BYTES*0.8) lastQ=Math.min(0.93,lastQ+0.02);
+}
+
+async function pushOnce(force){
+  if(!isLeader && !force) return true;   // 从属页不推
+  renderFrame();
+  const sig=makeSignature();
+  const diff=sigDiff(lastSig,sig);
+  // 保活：静止画面也每 1.5 秒发一帧，否则后端 2 秒收不到会切回内置仪表盘
+  const keepAlive = (Date.now() - lastSendAt) > 1500;
+  if(!force && lastSig && diff<DIFF_THRESHOLD && !keepAlive){
+    skippedFrames++; skipSinceSend++;
+    $('stat').textContent=`跳过 ${skippedFrames} / 发送 ${sentFrames} · q=${lastQ.toFixed(2)}`;
+    return true;
+  }
+  lastSig=sig;
+
+  const outCv=rotate90(cvEl);
+  const blob=await new Promise(res=>outCv.toBlob(res,'image/jpeg',lastQ));
+  if(!blob){ log('error','画布编码失败'); return false; }
+  const buf=new Uint8Array(await blob.arrayBuffer());
+  const r=await api('/api/frame',{method:'POST',body:buf});
+  if(!r) return false;
+  if(!r.ok){ log('error',`推送失败 ${r.bodyLen??'?'}B ${r.err||r.error||''}`); return false; }
+  sentFrames++; skipSinceSend=0; lastSendAt=Date.now();
+  adaptQuality(buf.length);
+  $('stat').textContent=` ${buf.length}B q=${lastQ.toFixed(2)} · 跳过 ${skippedFrames} / 发送 ${sentFrames}`;
+  return true;
+}
+
+// ==================== 设备操作 ====================
+$('btnConn').onclick = async () => {
+  const t0=Date.now();
+  setBusy('btnConn','连接中');
+  log('info','正在连接设备…');
+  try{
+    const r=await api('/api/connect',{method:'POST'});
+    if(r&&r.ok){
+      log('ok','设备已连接，推送首帧…');
+      const sent=await pushOnce(true);
+      log(sent?'ok':'error', sent?'首帧已推送':'首帧推送失败');
+      if(!pushing) await ensureAutoSync();
+    } else log('error','连接失败: '+(r?r.error:'未知'));
+  } finally { await endBusy(t0,['btnConn'],['连接设备']); }
+};
+
+$('btnDisc').onclick = async () => {
+  const t0=Date.now();
+  setBusy('btnDisc','断开中');
+  try{ await api('/api/disconnect',{method:'POST'}); log('ok','已断开'); }
+  finally { await endBusy(t0,['btnDisc'],['断开']); }
+};
+
+$('btnRefresh').onclick = async () => {
+  const t0=Date.now();
+  setBusy('btnRefresh','刷新中');
+  try{
+    const s=await api('/api/status');
+    if(s){ applyState(s); log('ok','状态已刷新'); }
+  } finally { await endBusy(t0,['btnRefresh'],['刷新状态']); }
+};
+
+$('btnPush').onclick = async () => {
+  if(pushing){
+    clearInterval(pushTimer); pushTimer=null; pushing=false;
+    $('btnPush').textContent='开始推送到屏幕';
+    log('ok','停止推送'); refreshStatus(); return;
+  }
+  const t0=Date.now();
+  setBusy('btnPush','启动中');
+  try{
+    const st=await api('/api/status');
+    if(!st||!st.open){ log('error','设备未连接'); return; }
+    if(st.capture){ log('error','副屏正在占用屏幕，请先关闭副屏'); applyState(st); return; }
+    pushing=true;
+    const fps=Math.max(1,Math.min(30,theme.canvas.fps||20));
+    pushTimer=setInterval(pushOnce,1000/fps);
+    log('ok','开始推送 '+fps+'fps');
+  } finally { await endBusy(t0,['btnPush'],['停止推送']); }
+};
+
+$('btnOnce').onclick = () => pushOnce(true);
+
+// ==================== 副屏 ====================
+let displays=[], windowsList=[];
+async function loadDisplays(){
+  displays=(await api('/api/displays'))||[];
+  const sel=$('capDisplay'); if(!sel) return;
+  sel.innerHTML='';
+  if(!displays.length){ sel.innerHTML='<option value="">（无显示器）</option>'; return; }
+  displays.forEach(d=>{
+    const o=document.createElement('option');
+    o.value=String(d.index);
+    o.textContent=`${d.name}  ${d.width}x${d.height}${d.primary?' (主)':''}`;
+    sel.appendChild(o);
+  });
+}
+async function loadWindows(){
+  windowsList=(await api('/api/windows'))||[];
+  const sel=$('capWindow'); if(!sel) return;
+  sel.innerHTML='';
+  if(!windowsList.length){ sel.innerHTML='<option value="">（无可用窗口）</option>'; return; }
+  windowsList.forEach(w=>{
+    const o=document.createElement('option');
+    o.value=String(w.hwnd);
+    o.textContent=`${w.width}x${w.height}  ${w.title.slice(0,44)}`;
+    sel.appendChild(o);
+  });
+}
+$('capMode').onchange = () => {
+  const isWin=$('capMode').value==='window';
+  $('rowWindow').style.display=isWin?'':'none';
+  $('rowDisplay').style.display=isWin?'none':'';
+};
+$('btnRefreshDisp').onclick=loadDisplays;
+$('btnRefreshWin').onclick=loadWindows;
+
+$('btnCap').onclick = async () => {
+  const mode=$('capMode').value==='window'?1:0;
+  const body={enable:true,mode};
+  if(mode===1){
+    body.hwnd=Number($('capWindow').value)||0;
+    if(!body.hwnd){ log('error','请先选一个窗口'); return; }
+  } else body.monitor=Number($('capDisplay').value)||0;
+
+  const t0=Date.now();
+  setBusy('btnCap','启动中'); setBusy('btnCapOff'); setBusy('btnPush'); setBusy('btnOnce');
+  if(pushing){ clearInterval(pushTimer); pushTimer=null; pushing=false; log('ok','已停止主题推送，切换为副屏'); }
+  try{
+    const fps=+$('capFps').value||20;
+    await api('/api/fps',{method:'POST',body:JSON.stringify({fps})});
+    const r=await api('/api/capture',{method:'POST',body:JSON.stringify(body)});
+    if(r&&r.ok) log('ok',`副屏已开启（${mode===1?'窗口':'显示器'} · ${fps}fps）`);
+    else log('error','开启失败：'+((r&&(r.reason||r.error))||'未知'));
+  } finally {
+    await endBusy(t0,['btnCap','btnCapOff','btnPush','btnOnce'],
+                  ['开启副屏','关闭',undefined,'渲染一帧']);
+  }
+};
+
+$('btnCapOff').onclick = async () => {
+  const t0=Date.now();
+  setBusy('btnCapOff','停止中'); setBusy('btnCap');
+  try{
+    await api('/api/capture',{method:'POST',body:JSON.stringify({enable:false})});
+    log('ok','副屏已关闭，2 秒后恢复内置仪表盘');
+  } finally { await endBusy(t0,['btnCapOff','btnCap'],['关闭','开启副屏']); }
+};
+
+$('btnCapPause').onclick = async () => {
+  const s=await api('/api/status');
+  if(!s||!s.capture) return;
+  const t0=Date.now();
+  setBusy('btnCapPause','处理中');
+  try{
+    await api('/api/capture',{method:'POST',body:JSON.stringify({paused:!s.paused})});
+    log('ok', s.paused?'副屏已恢复':'副屏已暂停');
+  } finally { await endBusy(t0,['btnCapPause']); }
+};
+
+// ==================== 编辑器工具条 ====================
+$('btnUndo').onclick=doUndo;
+$('btnRedo').onclick=doRedo;
+$('btnDel').onclick=()=>{ deleteSelSet(); };
+$('btnDup').onclick=()=>{
+  const w=theme.widgets.find(x=>x.id===selected);
+  if(!w) return;
+  pushUndo();
+  const c=JSON.parse(JSON.stringify(w));
+  c.id='w'+Date.now().toString(36).slice(-5);
+  c.z=(w.z||0)+1;
+  const r=resolveRect(w.rect);
+  c.rect={x:r.x+12,y:r.y+12,w:r.w,h:r.h};
+  theme.widgets.push(c);
+  selected=c.id;
+  renderLayers(); renderProps(); renderFrame();
+};
+
+let lastNudge = 0;
+document.addEventListener('keydown', e=>{
+  if(!$('page-editor').classList.contains('active')) return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea') return;
+  const k=(e.key||'').toLowerCase();
+  const mod=e.ctrlKey||e.metaKey;
+
+  if(mod && k==='z' && !e.shiftKey){ e.preventDefault(); doUndo(); }
+  else if(mod && (k==='y' || (k==='z' && e.shiftKey))){ e.preventDefault(); doRedo(); }
+  else if(mod && k==='d'){ e.preventDefault(); $('btnDup').click(); }
+  else if(mod && k==='c'){ e.preventDefault(); copySel(); }
+  else if(mod && k==='v'){ e.preventDefault(); pasteSel(); }
+  else if(mod && k==='a'){
+    e.preventDefault();
+    setSel(theme.widgets.map(w=>w.id));
+    renderLayers(); renderProps(); renderFrame(); updateSelHint();
+  }
+  else if(k==='delete'||k==='backspace'){ e.preventDefault(); $('btnDel').click(); }
+  else if(k.indexOf('arrow')===0){
+    const list=selWidgets();
+    if(!list.length) return;
+    e.preventDefault();
+    const step=e.shiftKey ? 10 : 1;
+    const dx=k==='arrowleft' ? -step : k==='arrowright' ? step : 0;
+    const dy=k==='arrowup'   ? -step : k==='arrowdown'  ? step : 0;
+    if(!dx && !dy) return;
+    // 长按连续微调只记一次撤销
+    if(Date.now()-lastNudge > 600){ pushUndo(); lastNudge=Date.now(); }
+    list.forEach(w=>{
+      const r=resolveRect(w.rect);
+      w.rect={ x:Math.round(r.x+dx), y:Math.round(r.y+dy),
+               w:Math.round(r.w),    h:Math.round(r.h) };
+    });
+    renderFrame(); renderProps(); markDirty();
+  }
+});
+
+// ==================== 画布设置 / 设置页 ====================
+function bindCanvasSettings(){
+  // 画布设置面板已移除，这里只保证设置页的 FPS 输入框同步
+  const cf=$('cfps');
+  if(cf){
+    cf.value=theme.canvas.fps;
+    cf.onchange=e=>{ theme.canvas.fps=Math.max(1,Math.min(30,+e.target.value||20)); };
+  }
+  const cb=$('cbg');
+  if(cb){
+    cb.value=theme.canvas.background;
+    cb.oninput=e=>{ theme.canvas.background=e.target.value; renderFrame(); };
+  }
+  const sf=$('setFps');
+  if(sf) sf.value = theme.canvas.fps;
+}
+
+$('setFps').value=20;
+$('setFps').onchange=async e=>{
+  const v=Math.max(1,Math.min(30,+e.target.value||20));
+  await api('/api/fps',{method:'POST',body:JSON.stringify({fps:v})});
+  theme.canvas.fps=v; $('cfps').value=v;
+  log('ok','默认 FPS 设为 '+v);
+};
+$('setTargetBytes').value=TARGET_BYTES;
+$('setTargetBytes').onchange=e=>{
+  TARGET_BYTES=Math.max(2000,+e.target.value||13000);
+  log('ok','目标帧大小 '+TARGET_BYTES+' 字节');
+};
+$('setPort').value=location.port||'8765';
+$('btnOpenUI').onclick=()=>window.open(location.href,'_blank');
+
+$('btnExportTheme').onclick=()=>{
+  const blob=new Blob([JSON.stringify(theme,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='coolleo-theme.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log('ok','主题已导出');
+};
+$('btnImportTheme').onclick=()=>$('fileTheme').click();
+$('fileTheme').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    const t=JSON.parse(await f.text());
+    if(!t.widgets) throw new Error('缺少 widgets');
+    pushUndo();
+    theme=t; selected=null;
+    bindCanvasSettings(); renderLayers(); renderProps(); renderFrame();
+    log('ok','主题已导入');
+  }catch(err){ log('error','导入失败: '+err.message); }
+};
+$('btnResetTheme').onclick=()=>{
+  pushUndo();
+  theme=DEFAULT_THEME(); selected=null;
+  bindCanvasSettings(); renderLayers(); renderProps(); renderFrame();
+  log('ok','已恢复默认主题');
+};
+
+// ==================== 指标轮询 ====================
+async function pollMetrics(){
+  const m=await api('/api/metrics');
+  if(!m) return;
+  metrics=m;
+  const box=$('metrics'); box.innerHTML='';
+  for(const [k,v] of Object.entries(m)){
+    const d=document.createElement('div');
+    d.className='kv';
+    d.innerHTML=`<span>${k}</span><b>${Math.round(v*10)/10}</b>`;
+    box.appendChild(d);
+  }
+}
+
+// 打开浏览器时，先问后端当前是什么主题（避免覆盖后端正在渲染的画面）
+async function loadThemeFromBackend(){
+  try{
+    const r = await fetch('/api/theme/get');
+    if(!r.ok) return false;
+    const t = await r.json();
+    if(t && t.widgets && t.widgets.length){
+      theme = t;
+      if(!theme.canvas) theme.canvas = { width:320, height:240, fps:20, background:'#000000' };
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+// ==================== 多标签页 leader 选举 ====================
+// 开多个标签时，只有一个负责推送，避免互相覆盖
+const TAB_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+const LEADER_KEY = 'coolleo_push_leader';
+const LEADER_TTL = 3000;   // leader 心跳超时（毫秒）
+let isLeader = false;
+
+function readLeader(){
+  try{ return JSON.parse(localStorage.getItem(LEADER_KEY) || '{}'); }catch(e){ return {}; }
+}
+function writeLeader(){
+  try{ localStorage.setItem(LEADER_KEY, JSON.stringify({ id: TAB_ID, ts: Date.now() })); }catch(e){}
+}
+
+function electLeader(){
+  const cur = readLeader();
+  const now = Date.now();
+  const stale = !cur.id || (now - (cur.ts || 0)) > LEADER_TTL;
+  const wasLeader = isLeader;
+
+  if (cur.id === TAB_ID) {
+    // 我是 leader，续期
+    writeLeader();
+    isLeader = true;
+  } else if (stale) {
+    // 原来的 leader 挂了/不存在 -> 抢过来
+    writeLeader();
+    isLeader = true;
+  } else {
+    isLeader = false;
+  }
+
+  if (isLeader !== wasLeader) {
+    onLeaderChanged(isLeader);
+  }
+  return isLeader;
+}
+
+function onLeaderChanged(nowLeader){
+  const hint = $('leaderHint');
+  if (hint) {
+    hint.style.display = nowLeader ? 'none' : '';
+    hint.textContent = '另一个窗口正在推送 · 本窗口只编辑不推送';
+  }
+  if (nowLeader) {
+    if (autoSyncRunning) { lastSendAt = 0; ensureAutoSync(); }
+  } else {
+    // 交出控制权：停掉本页推送循环
+    if (pushTimer) { clearInterval(pushTimer); pushTimer = null; }
+    pushing = false;
+  }
+  log(nowLeader ? 'ok' : 'warn',
+      nowLeader ? '本窗口已接管推送' : '另一个窗口在推送，本窗口待命');
+}
+
+// ==================== 自动实时同步 ====================
+// 画布里是什么，屏幕就是什么。全程自动，不需要任何按钮。
+let autoSyncRunning = false;
+
+async function ensureAutoSync(){
+  if(!autoSyncRunning) return;
+  if(!isLeader) return;   // 从属页不推
+  const st = await api('/api/status');
+  if(!st) return;
+
+  // 未连接 / 副屏占用 -> 暂停
+  if(!st.open || st.capture){
+    if(pushing){
+      clearInterval(pushTimer); pushTimer=null; pushing=false;
+      $('btnPush').textContent = '开始推送到屏幕';
+    }
+    return;
+  }
+
+  // 已连接且没副屏 -> 保持推送循环在跑
+  if(!pushing){
+    pushing = true;
+    const fps = Math.max(1, Math.min(30, theme.canvas.fps || 20));
+    pushTimer = setInterval(pushOnce, 1000/fps);
+    $('btnPush').textContent = '停止推送';
+    log('ok', '画布已接管屏幕（实时同步）');
+  }
+}
+
+function startAutoSync(){
+  if(autoSyncRunning) return;
+  autoSyncRunning = true;
+  ensureAutoSync();
+  lastSendAt = 0;
+  renderFrame();
+  syncThemeToBackend(true);
+  pushOnce(true);
+  log('ok','实时同步已启用：画布内容会自动推送到屏幕');
+}
+
+function stopAutoSync(){
+  autoSyncRunning = false;
+  if(pushTimer){ clearInterval(pushTimer); pushTimer = null; }
+  pushing = false;
+  log('warn','实时同步已停止');
+}
+
+// ==================== 模板列表 ====================
+function renderTemplates(){
+  const box = $('tplList'); if(!box) return;
+  box.innerHTML = '';
+  for(const t of TEMPLATES){
+    const b = document.createElement('button');
+    b.textContent = t.name;
+    b.onclick = () => {
+      pushUndo();
+      const built = t.build();
+      theme = { id:'tpl_'+Date.now().toString(36).slice(-4), name:t.name, ...built };
+      setSel([]);
+      bindCanvasSettings();
+      renderLayers(); renderProps(); renderFrame(); markDirty();
+      log('ok','已套用模板：'+t.name);
+      syncThemeToBackend(true);
+    };
+    box.appendChild(b);
+  }
+}
+
+// ==================== 工具条绑定 ====================
+function bindToolbar(){
+  $('btnUndo').onclick = doUndo;
+  $('btnRedo').onclick = doRedo;
+
+  $('btnDel').onclick = () => {
+    const ids = selIds();
+    if(!ids.length) return;
+    pushUndo();
+
+    // 按图层显示顺序（z 从高到低）找被删除位置，删完自动选中原位置的下一个
+    const order = [...theme.widgets]
+      .filter(w=>w.type!=='bgImage')
+      .sort((a,b)=>(b.z||0)-(a.z||0));
+    const firstIdx = order.findIndex(w=>selectedSet.has(w.id));
+    const remainingOrder = order.filter(w=>!selectedSet.has(w.id));
+
+    theme.widgets = theme.widgets.filter(w=>!selectedSet.has(w.id));
+
+    let nextId = null;
+    if(remainingOrder.length){
+      // 优先选原位置的下一个；删的是最后一个就选上一个
+      const idx = Math.min(Math.max(firstIdx, 0), remainingOrder.length - 1);
+      nextId = remainingOrder[idx].id;
+    }
+    setSel(nextId ? [nextId] : []);
+    renderLayers(); renderProps(); renderFrame(); updateSelHint();
+    if(nextId) log('ok', '已删除，自动选中下一个');
+    else log('ok', '已删除');
+  };
+
+  $('btnDup').onclick = () => {
+    const list = selWidgets();
+    if(!list.length) return;
+    pushUndo();
+    const newIds = [];
+    for(const w of list){
+      const c = JSON.parse(JSON.stringify(w));
+      c.id = 'w'+Date.now().toString(36).slice(-5)+Math.floor(Math.random()*9);
+      c.z = (w.z||0)+1;
+      const r = resolveRect(w.rect);
+      c.rect = { x:r.x+12, y:r.y+12, w:r.w, h:r.h };
+      theme.widgets.push(c);
+      newIds.push(c.id);
+    }
+    setSel(newIds);
+    renderLayers(); renderProps(); renderFrame(); updateSelHint();
+  };
+
+  // 对齐按钮（工具条精简后可能不存在）
+  const ag = $('alignGroup');
+  if(ag){
+    ag.querySelectorAll('button').forEach(b=>{
+      b.onclick = () => alignWidgets(b.dataset.align);
+    });
+  }
+
+  // 层级按钮（可能不存在）
+  const bf = $('btnFront');  if(bf) bf.onclick = () => bumpZ('front');
+  const bu = $('btnUpZ');    if(bu) bu.onclick = () => bumpZ('up');
+  const bd = $('btnDownZ');  if(bd) bd.onclick = () => bumpZ('down');
+  const bb = $('btnBack');   if(bb) bb.onclick = () => bumpZ('back');
+
+  // 网格显示（可能不存在）
+  const gs = $('gridShow');
+  if(gs) gs.onchange = () => cvEl.classList.toggle('grid-on', gs.checked);
+}
+
+// ==================== 媒体导入器 ====================
+const mediaState = {
+  zoom:1, panX:0, panY:0,
+  file:null, type:'image', img:null, video:null, srcUrl:null,
+  naturalW:0, naturalH:0, result:null,
+  targetType:null   // 'image' | 'video' | 'bgImage'
+};
+
+let pendingTargetType = null;
+let pendingWidget = null;
+
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(fr.result);
+    fr.onerror=()=>rej(new Error('读取失败'));
+    fr.readAsDataURL(file);
+  });
+}
+
+function loadImageEl(url){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    im.onload=()=>res(im);
+    im.onerror=()=>rej(new Error('图片解码失败'));
+    im.src=url;
+  });
+}
+
+function loadVideoEl(url){
+  return new Promise((res,rej)=>{
+    const v=document.createElement('video');
+    v.muted=true; v.playsInline=true; v.preload='auto';
+    v.onloadedmetadata=()=>res(v);
+    v.onerror=()=>rej(new Error('视频解码失败'));
+    v.src=url;
+  });
+}
+
+/** 把源（图片或视频当前帧）按适配模式画到目标尺寸画布 */
+// fit: cover/contain/fill
+// view: {zoom, panX, panY} —— 用户手动调整的缩放与偏移
+function drawFitted(ctx, src, sw, sh, tw, th, fit, bg, view){
+  ctx.fillStyle = bg || '#000000';
+  ctx.fillRect(0,0,tw,th);
+  if(!sw || !sh) return;
+
+  const zoom = (view && +view.zoom) || 1;
+  const panX = (view && +view.panX) || 0;
+  const panY = (view && +view.panY) || 0;
+
+  if(fit==='fill'){
+    const dw = tw*zoom, dh = th*zoom;
+    ctx.drawImage(src, (tw-dw)/2 + panX, (th-dh)/2 + panY, dw, dh);
+    return;
+  }
+  const sr = sw/sh, tr = tw/th;
+  let dw,dh;
+  if(fit==='contain'){
+    if(sr > tr){ dw = tw; dh = tw/sr; } else { dh = th; dw = th*sr; }
+  } else { // cover
+    if(sr > tr){ dh = th; dw = th*sr; } else { dw = tw; dh = tw/sr; }
+  }
+  dw *= zoom; dh *= zoom;
+  const dx = (tw-dw)/2 + panX;
+  const dy = (th-dh)/2 + panY;
+  ctx.drawImage(src, dx, dy, dw, dh);
+}
+
+// 限制平移范围，避免把图拖出画布
+function clampPan(){
+  const cv = $('mediaCanvas'); if(!cv) return;
+  const tw = cv.width, th = cv.height;
+  const nw = mediaState.naturalW || tw, nh = mediaState.naturalH || th;
+  const sr = nw/nh, tr = tw/th;
+  let dw, dh;
+  const fit = $('mediaFit') ? $('mediaFit').value : 'cover';
+  if(fit === 'fill'){ dw = tw; dh = th; }
+  else if(fit === 'contain'){
+    if(sr > tr){ dw = tw; dh = tw/sr; } else { dh = th; dw = th*sr; }
+  } else {
+    if(sr > tr){ dh = th; dw = th*sr; } else { dw = tw; dh = tw/sr; }
+  }
+  dw *= mediaState.zoom || 1;
+  dh *= mediaState.zoom || 1;
+  // 图比画布大时，允许拖到边缘刚好贴合；比画布小时禁止拖
+  const maxX = Math.max(0, (dw - tw) / 2);
+  const maxY = Math.max(0, (dh - th) / 2);
+  mediaState.panX = Math.max(-maxX, Math.min(maxX, mediaState.panX || 0));
+  mediaState.panY = Math.max(-maxY, Math.min(maxY, mediaState.panY || 0));
+}
+
+// ==================== 裁剪交互：拖动 + 滚轮缩放 ====================
+function syncZoomUI(){
+  const zs = $('mediaZoom'), zv = $('mediaZoomVal');
+  if(zs) zs.value = (mediaState.zoom || 1).toFixed(2);
+  if(zv) zv.textContent = Math.round((mediaState.zoom || 1) * 100) + '%';
+}
+
+function resetCropView(){
+  mediaState.zoom = 1; mediaState.panX = 0; mediaState.panY = 0;
+  refreshMediaPreview();
+}
+
+function bindCropInteract(){
+  const cv = $('mediaCanvas');
+  if(!cv || cv._cropBound) return;
+  cv._cropBound = true;
+  cv.style.cursor = 'grab';
+
+  let drag = null;
+
+  cv.addEventListener('pointerdown', ev => {
+    if(!$('mediaModal').classList.contains('show')) return;
+    drag = { x0: ev.clientX, y0: ev.clientY,
+             panX0: mediaState.panX || 0, panY0: mediaState.panY || 0 };
+    cv.style.cursor = 'grabbing';
+    try{ cv.setPointerCapture(ev.pointerId); }catch(e){}
+    ev.preventDefault();
+  });
+
+  cv.addEventListener('pointermove', ev => {
+    if(!drag) return;
+    // 画布显示尺寸和逻辑尺寸可能不同，按比例换算
+    const r = cv.getBoundingClientRect();
+    const sx = cv.width / (r.width || 1);
+    const sy = cv.height / (r.height || 1);
+    mediaState.panX = drag.panX0 + (ev.clientX - drag.x0) * sx;
+    mediaState.panY = drag.panY0 + (ev.clientY - drag.y0) * sy;
+    refreshMediaPreview();
+  });
+
+  const endDrag = () => { drag = null; cv.style.cursor = 'grab'; };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('pointerleave', () => { if(drag) endDrag(); });
+
+  // 滚轮缩放
+  cv.addEventListener('wheel', ev => {
+    if(!$('mediaModal').classList.contains('show')) return;
+    ev.preventDefault();
+    const step = ev.deltaY > 0 ? -0.08 : 0.08;
+    mediaState.zoom = Math.max(0.2, Math.min(4, (mediaState.zoom || 1) + step));
+    refreshMediaPreview();
+  }, { passive: false });
+}
+
+function refreshMediaPreview(){
+  const cv=$('mediaCanvas'); if(!cv) return;
+  const tw=Math.max(16,Math.min(1024,+$('mediaW').value||320));
+  const th=Math.max(16,Math.min(1024,+$('mediaH').value||240));
+  cv.width=tw; cv.height=th;
+  const ctx=cv.getContext('2d',{alpha:false});
+
+  const src = mediaState.type==='video' ? mediaState.video : mediaState.img;
+  if(!src) return;
+  clampPan();
+  drawFitted(ctx, src, mediaState.naturalW, mediaState.naturalH, tw, th,
+             $('mediaFit').value, mediaState.bgColor || '#000000',
+             { zoom: mediaState.zoom, panX: mediaState.panX, panY: mediaState.panY });
+  syncZoomUI();
+
+  // 估算压缩后大小
+  const q=+$('mediaQuality').value;
+  $('mediaQualityVal').textContent = q.toFixed(2);
+  cv.toBlob(blob=>{
+    const kb = blob ? (blob.size/1024).toFixed(1) : '?';
+    $('mediaInfo').textContent =
+      `原图 ${mediaState.naturalW}×${mediaState.naturalH}  →  输出 ${tw}×${th}  ·  `+
+      `预计 ${kb} KB  ·  清晰度 ${q.toFixed(2)}`;
+  }, 'image/jpeg', q);
+}
+
+// 从网址加载图片/视频（走后端代理，避免 CORS）
+async function importFromUrl(url, targetType, widget){
+  if(!url || !/^https?:\/\//i.test(url)){
+    log('error','请输入以 http 开头的网址');
+    return;
+  }
+  log('ok','正在下载…');
+  try{
+    const resp = await fetch('/api/fetchurl?url=' + encodeURIComponent(url));
+    if(!resp.ok){
+      log('error','下载失败 HTTP ' + resp.status);
+      return;
+    }
+    const blob = await resp.blob();
+    if(blob.size < 100){ log('error','内容为空'); return; }
+    const name = (url.split('/').pop() || 'remote').split('?')[0];
+    const file = new File([blob], name, { type: blob.type || 'image/png' });
+    log('ok', `已下载 ${(blob.size/1024).toFixed(0)} KB`);
+    openMediaImporter(file, widget, targetType);
+  }catch(e){
+    log('error','下载异常: ' + e.message);
+  }
+}
+
+function bindUrlImport(){
+  const btn = $('urlImportBtn');
+  const inp = $('urlImportInput');
+  if(!btn || !inp) return;
+  const run = () => {
+    importFromUrl(inp.value.trim(),
+                  mediaState.pendingType || 'bgImage',
+                  mediaState.pendingWidget || null);
+  };
+  btn.onclick = run;
+  inp.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); run(); }
+  });
+
+  // 缩放滑块 / 重置
+  const zs = $('mediaZoom');
+  if(zs) zs.oninput = e => {
+    mediaState.zoom = +e.target.value || 1;
+    refreshMediaPreview();
+  };
+  const zr = $('mediaZoomReset');
+  if(zr) zr.onclick = resetCropView;
+
+  bindCropInteract();
+}
+
+async function openMediaImporter(file, widget, targetType){
+  mediaState.file=file;
+  mediaState.type = file.type.startsWith('video/') ? 'video' : 'image';
+  mediaState.widget = widget || null;
+  mediaState.targetType = targetType || (widget ? widget.type : (mediaState.type==='video'?'video':'image'));
+
+  $('mediaTitle').textContent = mediaState.type==='video' ? '导入视频（取当前帧）' : '导入图片';
+  $('mediaSub').textContent = mediaState.type==='video'
+    ? '视频将作为可播放素材嵌入，逐步推送；也可只取一帧作为静态图'
+    : '选择缩放方式与清晰度，确认后嵌入主题，无需再手动处理';
+
+  try{
+    if(mediaState.type==='video'){
+      mediaState.srcUrl = URL.createObjectURL(file);
+      const v = await loadVideoEl(mediaState.srcUrl);
+      mediaState.video = v;
+      mediaState.naturalW = v.videoWidth || 320;
+      mediaState.naturalH = v.videoHeight || 240;
+      v.currentTime = 0;
+      await new Promise(r=>setTimeout(r, 220));
+    } else {
+      const url = await fileToDataUrl(file);
+      mediaState.srcUrl = url;
+      const im = await loadImageEl(url);
+      mediaState.img = im;
+      mediaState.naturalW = im.naturalWidth;
+      mediaState.naturalH = im.naturalHeight;
+    }
+  }catch(e){
+    log('error','读取失败: '+e.message);
+    return;
+  }
+
+  // 默认目标尺寸：
+  //   背景图 -> 铺满画布
+  //   替换已有控件 -> 控件尺寸
+  //   新插入的普通图片/视频 -> 按原图比例缩到画布 60% 以内
+  let tw=320, th=240;
+  if(mediaState.targetType==='bgImage'){
+    tw = theme.canvas.width; th = theme.canvas.height;
+  } else if(mediaState.widget){
+    const r = resolveRect(mediaState.widget.rect);
+    tw = Math.round(r.w); th = Math.round(r.h);
+  } else {
+    const nw = mediaState.naturalW || theme.canvas.width;
+    const nh = mediaState.naturalH || theme.canvas.height;
+    const maxW = theme.canvas.width * 0.6;
+    const maxH = theme.canvas.height * 0.6;
+    const scale = Math.min(maxW/nw, maxH/nh, 1);
+    tw = Math.max(16, Math.round(nw * scale));
+    th = Math.max(16, Math.round(nh * scale));
+  }
+  $('mediaW').value = tw;
+  $('mediaH').value = th;
+  $('mediaFit').value = (mediaState.widget && mediaState.widget.props.fit) || 'cover';
+
+  $('mediaModal').classList.add('show');
+  refreshMediaPreview();
+}
+
+function closeMediaImporter(){
+  $('mediaModal').classList.remove('show');
+  if(mediaState.type==='video' && mediaState.srcUrl && mediaState.srcUrl.startsWith('blob:')){
+    // 保留 blob 供预览，不立即释放
+  }
+  mediaState.file=null; mediaState.img=null; mediaState.video=null;
+}
+
+async function confirmMediaImport(){
+  const tw=Math.max(16,Math.min(1024,+$('mediaW').value||320));
+  const th=Math.max(16,Math.min(1024,+$('mediaH').value||240));
+  const fit=$('mediaFit').value;
+  const q=+$('mediaQuality').value;
+
+  const cv=document.createElement('canvas');
+  cv.width=tw; cv.height=th;
+  const ctx=cv.getContext('2d',{alpha:false});
+  const src = mediaState.type==='video' ? mediaState.video : mediaState.img;
+  if(!src){ log('error','没有可转换的素材'); return; }
+  drawFitted(ctx, src, mediaState.naturalW, mediaState.naturalH, tw, th, fit, '#000000',
+             { zoom: mediaState.zoom, panX: mediaState.panX, panY: mediaState.panY });
+
+  let dataUrl;
+  if(mediaState.type==='video'){
+    // 视频也转成 base64 自包含，这样关掉页面、导出主题后都还在
+    try{
+      const resp = await fetch(mediaState.srcUrl);
+      const blob = await resp.blob();
+      const rawKb = blob.size/1024;
+      if(rawKb > 2048){
+        const bigMsg = '这个视频 ' + rawKb.toFixed(0) + ' KB，'
+          + '转成 base64 后主题会很大（约 ' + (rawKb*1.37).toFixed(0) + ' KB）。'
+          + ' 建议先用剪映/ffmpeg 压到 2MB 以内。要现在插入吗？';
+        const okBig = confirm(bigMsg);
+if(!okBig){ log('warn','已取消视频插入'); return; }
+      }
+      dataUrl = await new Promise((res,rej)=>{
+        const fr=new FileReader();
+        fr.onload=()=>res(fr.result);
+        fr.onerror=()=>rej(new Error('视频编码失败'));
+        fr.readAsDataURL(blob);
+      });
+    }catch(e){
+      log('error','视频转换失败: '+e.message);
+      return;
+    }
+  } else {
+    dataUrl = cv.toDataURL('image/jpeg', q);
+  }
+
+  const kb = Math.round(dataUrl.length*0.75/1024);
+
+  // 插入或更新控件
+  pushUndo();
+  let w = mediaState.widget;
+  const tgt = mediaState.targetType || (mediaState.type==='video'?'video':'image');
+
+  if(!w){
+    const id='m'+Date.now().toString(36).slice(-5);
+    const zs=theme.widgets.map(x=>x.z||0);
+    const maxZ=zs.length?Math.max(...zs):0;
+    const minZ=zs.length?Math.min(...zs):0;
+
+    const isBg = (tgt==='bgImage');
+    // 背景唯一：先移除旧背景
+    if(isBg){
+      theme.widgets = theme.widgets.filter(x=>x.type!=='bgImage');
+    }
+    w = {
+      id, type: tgt,
+      rect: isBg
+        ? { x:0, y:0, w:tw, h:th }
+        : { x:Math.round((theme.canvas.width-tw)/2), y:Math.round((theme.canvas.height-th)/2), w:tw, h:th },
+      props: isBg
+        ? { src:dataUrl, fit, radius:0, dim:0, quality:q }
+        : { src:dataUrl, fit, radius:0, quality:q },
+      z: isBg ? minZ-1 : maxZ+1
+    };
+    theme.widgets.push(w);
+  } else {
+    w.props = { ...w.props, src:dataUrl, fit, quality:q };
+    w.rect = { ...resolveRect(w.rect), w:tw, h:th };
+  }
+
+  setSel(w.id);
+  renderLayers(); renderProps(); renderFrame(); markDirty();
+  closeMediaImporter();
+
+  const note = mediaState.type==='video'
+    ? `已插入视频，约 ${kb} KB（关闭页面后需重新导入）`
+    : `已插入图片 ${tw}×${th}，约 ${kb} KB`;
+  log('ok', note);
+}
+
+function ensureMediaInput(){
+  if($('mediaFileInput')) return;
+  const i=document.createElement('input');
+  i.type='file'; i.id='mediaFileInput';
+  i.accept='image/*,video/*'; i.style.display='none';
+  document.body.appendChild(i);
+}
+
+function bindMediaImporter(){
+  ensureMediaInput();
+  const mask=$('mediaModal');
+  if(!mask) return;
+  $('mediaCancel').onclick = closeMediaImporter;
+  $('mediaConfirm').onclick = confirmMediaImport;
+  mask.onclick = e => { if(e.target===mask) closeMediaImporter(); };
+
+  ['mediaW','mediaH'].forEach(id=>{
+    $(id).oninput = refreshMediaPreview;
+  });
+  $('mediaFit').onchange = refreshMediaPreview;
+  $('mediaQuality').oninput = refreshMediaPreview;
+
+  $('mediaFitWidget').onclick = ()=>{
+    const w = mediaState.widget || theme.widgets.find(x=>x.id===selected);
+    if(w){ const r=resolveRect(w.rect); $('mediaW').value=Math.round(r.w); $('mediaH').value=Math.round(r.h); }
+    refreshMediaPreview();
+  };
+  $('mediaFitCanvas').onclick = ()=>{
+    $('mediaW').value=theme.canvas.width;
+    $('mediaH').value=theme.canvas.height;
+    refreshMediaPreview();
+  };
+
+  // 统一入口：pending 变量记录目标类型与目标控件
+  window.__pickMedia = (targetType, widget)=>{
+    pendingTargetType = targetType || null;
+    pendingWidget = widget || null;
+    const i = $('mediaFileInput');
+    if(i) i.click();
+  };
+
+  const inp = $('mediaFileInput');
+  if(inp){
+    inp.onchange = e => {
+      const f = e.target.files[0];
+      if(f) openMediaImporter(f, pendingWidget, pendingTargetType);
+      pendingTargetType = null;
+      pendingWidget = null;
+      e.target.value = '';
+    };
+  }
+}
+
+// ==================== 主题库 ====================
+let themeList = [];
+
+
+// ==================== 主题分类管理 ====================
+const DEFAULT_CATS = [
+  { key:'', name:'全部', builtin:true },
+  { key:'dashboard', name:'仪表盘' },
+  { key:'clock', name:'时钟' },
+  { key:'minimal', name:'极简' },
+  { key:'game', name:'游戏风' },
+  { key:'custom', name:'自定义' },
+];
+
+function loadCats(){
+  let extra = [];
+  try{
+    const raw = localStorage.getItem('coolleo_cats');
+    if(raw) extra = JSON.parse(raw) || [];
+  }catch(e){}
+  // 去重：不能和内置 key 撞
+  const builtinKeys = DEFAULT_CATS.map(c=>c.key);
+  extra = extra.filter(c => c && c.key && !builtinKeys.includes(c.key));
+  return [...DEFAULT_CATS, ...extra];
+}
+
+function saveCats(list){
+  const builtinKeys = DEFAULT_CATS.map(c=>c.key);
+  const extra = list.filter(c => c && c.key && !builtinKeys.includes(c.key));
+  try{ localStorage.setItem('coolleo_cats', JSON.stringify(extra)); }catch(e){}
+}
+
+function catNameOf(key){
+  const c = loadCats().find(x => x.key === (key||''));
+  return c ? c.name : (key || '未分类');
+}
+
+function getCurrentCategory(){
+  return window.__libCategory || '';
+}
+
+function renderCatTabs(){
+  const box = $('themeCategory'); if(!box) return;
+  box.innerHTML = '';
+  for(const c of loadCats()){
+    const b = document.createElement('button');
+    b.dataset.cat = c.key;
+    b.textContent = c.name;
+    if((window.__libCategory || '') === c.key) b.classList.add('active');
+    // 自定义分类支持右键删除
+    if(!c.builtin && c.key && DEFAULT_CATS.every(d => d.key !== c.key)){
+      b.title = '右键删除这个分类';
+      b.oncontextmenu = ev => {
+        ev.preventDefault();
+        if(!confirm(`删除分类「${c.name}」？（主题本身不会删，只是分类标签消失）`)) return;
+        const list = loadCats().filter(x => x.key !== c.key);
+        saveCats(list);
+        if(getCurrentCategory() === c.key) window.__libCategory = '';
+        renderCatTabs();
+        refreshThemeLib();
+      };
+    }
+    box.appendChild(b);
+  }
+}
+
+function bindThemeCategory(){
+  const box = $('themeCategory');
+  if(box && !box._bound){
+    box._bound = true;
+    box.addEventListener('click', ev => {
+      const b = ev.target.closest('button[data-cat]');
+      if(!b) return;
+      window.__libCategory = b.dataset.cat || '';
+      renderCatTabs();
+      refreshThemeLib();
+    });
+  }
+
+  const addBtn = $('btnAddCat');
+  if(addBtn && !addBtn._bound){
+    addBtn._bound = true;
+    addBtn.onclick = () => {
+      const nm = (prompt('新分类名称（最多 8 字）：') || '').trim();
+      if(!nm) return;
+      if(nm.length > 8) return log('error','分类名最多 8 个字');
+      const key = 'c_' + nm.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '').slice(0, 10)
+                  + '_' + Date.now().toString(36).slice(-4);
+      const list = loadCats();
+      if(list.some(c => c.name === nm)) return log('error','已有同名分类');
+      list.push({ key, name: nm });
+      saveCats(list);
+      window.__libCategory = key;      // 新增后自动选中
+      renderCatTabs();
+      refreshThemeLib();
+      log('ok', `已新增分类「${nm}」，保存主题时会归到这一类`);
+    };
+  }
+}
+
+
+async function refreshThemeLib(){
+  themeList = (await api('/api/themes')) || [];
+  const box = $('themeLib'); if(!box) return;
+  box.innerHTML = '';
+
+  const filter = getCurrentCategory();
+  const shown = filter ? themeList.filter(t => (t.category||'custom') === filter) : themeList;
+
+  if(!themeList.length){
+    box.innerHTML = '<div class="lib-empty">还没有保存的主题<br>编辑好之后点上面的「保存」</div>';
+    return;
+  }
+  if(!shown.length){
+    box.innerHTML = '<div class="lib-empty">这个分类下还没有主题</div>';
+    return;
+  }
+  for(const t of shown){
+    const d = document.createElement('div');
+    d.className = 'lib-item';
+
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = t.name || t.id;
+    nm.title = t.id;
+    nm.onclick = () => loadThemeFromLib(t.id);
+
+    const dt = document.createElement('span');
+    dt.className = 'dt';
+    if(t.mtime){
+      const dtObj = new Date(t.mtime*1000);
+      dt.textContent = `${dtObj.getMonth()+1}/${dtObj.getDate()} ${String(dtObj.getHours()).padStart(2,'0')}:${String(dtObj.getMinutes()).padStart(2,'0')}`;
+    }
+
+    const act = document.createElement('span');
+    act.className = 'act';
+
+    const bLoad = document.createElement('button');
+    bLoad.className = 'ghost';
+    bLoad.textContent = '载入';
+    bLoad.onclick = () => loadThemeFromLib(t.id);
+
+    const bDel = document.createElement('button');
+    bDel.className = 'ghost';
+    bDel.textContent = '删除';
+    bDel.onclick = async () => {
+      if(!confirm('删除主题「' + (t.name||t.id) + '」？')) return;
+      const r = await api('/api/themes/delete', { method:'POST', body: JSON.stringify({ id: t.id }) });
+      if(r && r.ok){ log('ok','已删除 '+ (t.name||t.id)); refreshThemeLib(); }
+      else log('error','删除失败');
+    };
+
+    act.appendChild(bLoad);
+    act.appendChild(bDel);
+
+    // 缩略图（点图也能载入）
+    const th = document.createElement('div');
+    th.className = 'thumb';
+    th.title = t.name || t.id;
+    th.onclick = () => loadThemeFromLib(t.id);
+    const im = document.createElement('img');
+    im.loading = 'lazy';
+    im.alt = '';
+    im.src = '/api/themes/thumb?id=' + encodeURIComponent(t.id) + '&v=' + (t.mtime || 0);
+    im.onerror = () => {
+      im.remove();
+      const ph = document.createElement('span');
+      ph.className = 'ph';
+      ph.textContent = '无预览';
+      th.appendChild(ph);
+    };
+    th.appendChild(im);
+
+    if(t.category){
+      const tag = document.createElement('span');
+      tag.className = 'cat';
+      tag.textContent = catNameOf(t.category);
+      nm.appendChild(tag);
+    }
+
+    d.appendChild(th);
+    d.appendChild(nm);
+    if(dt.textContent) d.appendChild(dt);
+    d.appendChild(act);
+    box.appendChild(d);
+  }
+}
+
+async function loadThemeFromLib(id){
+  const t = await api('/api/themes/load', { method:'POST', body: JSON.stringify({ id }) });
+  if(!t || t.error){ log('error','载入失败'); return; }
+  pushUndo();
+  // 保留 id，方便再次保存覆盖
+  theme = { ...t, id };
+  setSel([]);
+  bindCanvasSettings();
+  renderLayers(); renderProps(); renderFrame();
+  $('themeName').value = t.name || id;
+  log('ok','已载入主题：' + (t.name || id));
+  syncThemeToBackend(true);
+  markDirty();
+}
+
+// ==================== 主题缩略图 ====================
+// 用一组固定值渲染画布，生成小图（视频取第一帧）
+const THUMB_W = 128, THUMB_H = 96;
+
+const THUMB_METRICS = {
+  'cpu.load': 42, 'cpu.temp': 51, 'cpu.freq': 3200,
+  'gpu.load': 28, 'gpu.temp': 47,
+  'mem.usedPercent': 63, 'mem.usedGB': 10.1, 'mem.totalGB': 16,
+  'disk.usedPercent': 55, 'disk.freeGB': 220,
+  'net.recvTotal': 0, 'net.sendTotal': 0
+};
+
+// 让视频控件在缩略图里画出第一帧
+function primeVideoForThumb(){
+  return new Promise(resolve => {
+    const vids = theme.widgets.filter(w => w.type === 'video' && w.props && w.props.src);
+    if(!vids.length) return resolve();
+    let pending = vids.length, done = false;
+    const finish = () => { if(!done && --pending <= 0){ done = true; resolve(); } };
+    setTimeout(() => { if(!done){ done = true; resolve(); } }, 1500);
+    for(const w of vids){
+      try{
+        const cache = RENDERERS.video && RENDERERS.video._cache;
+        let v = cache ? cache[w.props.src] : null;
+        if(!v){
+          v = document.createElement('video');
+          v.src = w.props.src;
+          v.muted = true; v.playsInline = true; v.preload = 'auto';
+          if(cache) cache[w.props.src] = v;
+        }
+        if(v.readyState >= 2){ finish(); continue; }
+        const onReady = () => {
+          try{ v.currentTime = 0; }catch(e){}
+          setTimeout(finish, 120);
+        };
+        v.addEventListener('loadeddata', onReady, { once: true });
+      }catch(e){ finish(); }
+    }
+  });
+}
+
+async function makeThemeThumb(){
+  await primeVideoForThumb();
+  const W = theme.canvas.width, H = theme.canvas.height;
+  const full = document.createElement('canvas');
+  full.width = W; full.height = H;
+  const c = full.getContext('2d', { alpha:false });
+
+  c.fillStyle = theme.canvas.background || '#000';
+  c.fillRect(0, 0, W, H);
+
+  for(const w of [...theme.widgets].sort((a,b)=>(a.z||0)-(b.z||0))){
+    const R = RENDERERS[w.type]; if(!R) continue;
+    const rect = resolveRect(w.rect, W, H);
+    const props = { ...R.defaults, ...(w.props||{}) };
+    // 绑定值用固定样本，保证缩略图稳定
+    for(const [alias, key] of Object.entries(w.bindings||{})){
+      if(key in THUMB_METRICS) props[alias] = THUMB_METRICS[key];
+    }
+    try{ R.draw(c, rect, props, w.bindings||{}, THUMB_METRICS); }catch(e){}
+  }
+
+  const small = document.createElement('canvas');
+  small.width = THUMB_W; small.height = THUMB_H;
+  const sc = small.getContext('2d', { alpha:false });
+  sc.imageSmoothingQuality = 'high';
+  sc.drawImage(full, 0, 0, THUMB_W, THUMB_H);
+  return small.toDataURL('image/jpeg', 0.72);
+}
+
+async function saveCurrentTheme(){
+  const name = ($('themeName').value || '').trim() || ('主题 ' + new Date().toLocaleString('zh-CN'));
+  // id：优先沿用已载入的，否则用名字生成
+  let id = theme.id && !theme.id.startsWith('default') && !theme.id.startsWith('tpl_') && theme.id.length<=40
+    ? theme.id
+    : 'theme_' + Date.now().toString(36);
+  if(!/^[A-Za-z0-9_-]+$/.test(id)) id = 'theme_' + Date.now().toString(36);
+
+  // 分类：优先用当前选中的分类；选「全部」时沿用主题原分类
+  let category = getCurrentCategory();
+  if(!category) category = theme.category || 'custom';
+  if(category && !loadCats().some(c => c.key === category)){
+    category = 'custom';
+  }
+
+  // 生成缩略图（视频取第一帧，控件用固定值）
+  let thumb = '';
+  try{ thumb = await makeThemeThumb(); }catch(e){}
+  // category / id / name 放最前：后端只读文件头 8KB 提取 category，
+  // 放末尾会被 thumb 的 base64 推到 8KB 之外
+  const body2 = { ...theme };
+  delete body2.category; delete body2.thumb;
+  const payload = { category, id, name: name, thumb, ...body2 };
+  const r = await api('/api/themes/save', {
+    method:'POST',
+    body: JSON.stringify({ id, name, theme: payload })
+  });
+  if(r && r.ok){
+    theme.id = id; theme.name = name; theme.category = category;
+    log('ok', `已保存「${name}」（${Math.round(r.bytes/1024)} KB）`);
+    refreshThemeLib();
+  } else {
+    log('error','保存失败');
+  }
+}
+
+// ==================== 实时同步 ====================
+let liveSyncOn = false;
+let liveTimer = null;
+let lastPushAt = 0;
+
+// 把主题 JSON 同步给后端（后端据此独立渲染，关浏览器也实时更新）
+let lastThemeSync = 0;
+async function syncThemeToBackend(force){
+  const now = Date.now();
+  if(!force && now - lastThemeSync < 400) return;
+  lastThemeSync = now;
+  try{
+    await fetch('/api/theme/sync', { method:'POST', body: JSON.stringify(theme) });
+  }catch(e){}
+}
+
+function markDirty(){
+  // 编辑即推送：不等任何开关，也不受 leader 限制
+  // （主题 JSON 同步是幂等的，后写的赢；帧推送才需要 leader）
+  if(liveTimer) return;
+  syncThemeToBackend();          // 结构变了就同步给后端
+  liveTimer = setTimeout(async ()=>{
+    liveTimer = null;
+    const wait = Math.max(0, 90 - (Date.now()-lastPushAt));
+    if(wait) await sleep(wait);
+    lastPushAt = Date.now();
+    try {
+      // 主题 JSON 先同步给后端（后端据此自渲染，浏览器关了也能出图）
+      await syncThemeToBackend(true);
+      // 帧推送只有 leader 做
+      if(autoSyncRunning && isLeader){
+        await ensureAutoSync();
+        await pushOnce(true);
+      }
+    } catch(e){}
+  }, 70);
+}
+
+function bindLiveSync(){
+  const cb = $('liveSync');
+  if(!cb) return;
+  cb.onchange = async () => {
+    liveSyncOn = cb.checked;
+    if(liveSyncOn){
+      const st = await api('/api/status');
+      if(!st || !st.open){ log('error','设备未连接，实时同步需要先连接设备'); cb.checked=false; liveSyncOn=false; return; }
+      if(st.capture){ log('error','副屏占用中，请先关闭副屏'); cb.checked=false; liveSyncOn=false; return; }
+      // 自动开启推送循环
+      if(!pushing){
+        pushing = true;
+        const fps = Math.max(1, Math.min(30, theme.canvas.fps||20));
+        pushTimer = setInterval(pushOnce, 1000/fps);
+        $('btnPush').textContent = '停止推送';
+      }
+      log('ok','实时同步已开启：编辑立刻反映到屏幕');
+    } else {
+      log('ok','实时同步已关闭');
+    }
+  };
+}
+
+// ==================== 屏幕预览 ====================
+function renderPreview(){
+  const pc = $('previewCv');
+  if(!pc || !cvEl.width) return;
+  const rotate = $('previewRotate') ? $('previewRotate').checked : false;
+
+  const W = theme.canvas.width, H = theme.canvas.height;
+  const pw = rotate ? H : W;
+  const ph = rotate ? W : H;
+
+  if(pc.width !== pw)  pc.width  = pw;
+  if(pc.height !== ph) pc.height = ph;
+
+  const c = pc.getContext('2d',{alpha:false});
+  c.fillStyle = '#000';
+  c.fillRect(0,0,pw,ph);
+
+  if(rotate){
+    // 主画布 320x240 -> 设备 240x320（顺时针）
+    c.save();
+    c.translate(pw, 0);
+    c.rotate(Math.PI/2);
+    c.drawImage(cvEl, 0, 0);
+    c.restore();
+  } else {
+    c.drawImage(cvEl, 0, 0, pw, ph);
+  }
+
+  // CSS 显示尺寸：按容器可用宽度自适应
+  const panel = $('previewPanel');
+  let avail = 216;
+  if(panel){
+    // 面板宽度 - 面板padding(32) - device-frame padding(20) - device-screen padding(16)
+    avail = Math.max(110, panel.clientWidth - 32 - 20 - 16);
+  }
+  const boxW = Math.min(196, avail);
+  pc.style.width = boxW + 'px';
+  pc.style.height = Math.round(boxW*ph/pw) + 'px';
+
+  const sz = $('previewSize');
+  if(sz) sz.textContent = pw + ' × ' + ph;
+  const tag = $('previewTag');
+  if(tag) tag.textContent = rotate ? '设备视角' : '编辑视角';
+}
+
+function bindPreview(){
+  const cb = $('previewRotate');
+  if(cb) cb.onchange = renderPreview;
+}
+
+// ==================== 启动 ====================
+async function init(){
+  buildPalette();
+  renderTemplates();
+  bindToolbar();
+  bindMediaImporter();
+  bindUrlImport();
+  renderCatTabs();
+  bindThemeCategory();
+  bindLiveSync();
+  refreshThemeLib();
+
+  // 先从后端取当前主题（关浏览器再打开时恢复，而不是回默认）
+  const restored = await loadThemeFromBackend();
+  if(restored){
+    log('ok','已恢复后端当前主题');
+  }
+
+  startAutoSync();
+  bindPreview();
+  const sb=$('btnSaveTheme'); if(sb) sb.onclick = saveCurrentTheme;
+  bindCanvasSettings();
+  renderLayers();
+  renderProps();
+  renderFrame();
+  pollMetrics();
+  refreshStatus();
+  loadDisplays();
+  loadWindows();
+  setInterval(pollMetrics,1000);
+  setInterval(refreshStatus,1000);
+
+  // 恢复到上次所在的页面（刷新不会跳回首页）
+  switchPage(currentPageFromUrl(), true);
+  window.__coolleo={
+    getTheme:()=>theme,
+    setTheme:t=>{ theme=t; bindCanvasSettings(); renderLayers(); renderProps(); renderFrame(); },
+    selectIds: ids=>{ setSel(ids); renderLayers(); renderProps(); renderFrame(); updateSelHint(); },
+    selIds: ()=>selIds(),
+    align: m=>alignWidgets(m),
+    bumpZ: m=>bumpZ(m),
+    openMedia: (f,w)=>openMediaImporter(f,w),
+    // 主题增强：调试入口
+    metricList: ()=>METRIC_LIST.map(x=>x[0]),
+  deleteSel:()=>deleteSelSet(),
+  setLocked:(id,v)=>{ const w=theme.widgets.find(x=>x.id===id); if(!w) return false; w.locked=!!v; renderLayers(); renderFrame(); markDirty(); return true; },
+  setHidden:(id,v)=>{ const w=theme.widgets.find(x=>x.id===id); if(!w) return false; w.hidden=!!v; renderLayers(); renderFrame(); markDirty(); return true; },
+  setCondition:(id,v)=>{ const w=theme.widgets.find(x=>x.id===id); if(!w) return false; w.visibleWhen=v||''; renderFrame(); markDirty(); return true; },
+  condOk:(e)=>condOk(e, metrics),
+  setGroup:(ids,g)=>{ pushUndo(); theme.widgets.forEach(x=>{ if(ids.includes(x.id)){ if(g) x.group=g; else delete x.group; } }); renderLayers(); renderFrame(); markDirty(); return true; },
+  getGroup:(id)=>{ const w=theme.widgets.find(x=>x.id===id); return w? (w.group||'') : null; },
+  importReport:()=>window.__lastImportReport||null,
+  packOf:()=>{ const t=JSON.parse(JSON.stringify(theme)); t.meta=Object.assign({},t.meta||{},{app:'Coolleo Studio',schema:1}); return {format:'coolleo-theme',version:1,meta:t.meta,theme:t}; },
+  showCtx:(id)=>{ const w=theme.widgets.find(x=>x.id===id)||null; if(w) setSel(id); showCtx(200,200,w); return true; },
+    copySel, pasteSel, exportTheme: exportThemeFile,
+    importTheme: t=>applyImportedTheme(t,'调试导入'),
+    setGrid: v=>{ GRID=Math.max(0,Number(v)||0); const sn=$('snapSize'); if(sn) sn.value=GRID; },
+    getGrid: ()=>GRID,
+    setSmooth: v=>{ SMOOTH.on=!!v; smoothReset(); },
+    getSmooth: ()=>SMOOTH.on,
+    watch: ()=>[...selectedSet],
+    switchPage, log
+  };
+  bindThemeEnhancements();
+  updateSelHint();
+  log('ok','界面已加载 · 后台 '+location.origin);
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+
+<!-- 媒体导入弹窗 -->
+<div class="modal-mask" id="mediaModal">
+  <div class="modal">
+    <h3 id="mediaTitle">导入图片</h3>
+    <div class="url-import">
+      <input id="urlImportInput" type="text" placeholder="粘贴图片/视频网址（https://…）">
+      <button id="urlImportBtn" class="ghost">从网址导入</button>
+    </div>
+    <div class="sub" id="mediaSub">选择缩放方式与清晰度，确认后嵌入主题</div>
+
+    <div class="media-stage">
+      <canvas id="mediaCanvas"></canvas>
+    </div>
+    <div class="media-info" id="mediaInfo"></div>
+
+    <div class="row" style="margin-top:14px">
+      <label>适配方式</label>
+      <select id="mediaFit">
+        <option value="cover">裁切填充（铺满，裁掉多余）</option>
+        <option value="contain">完整显示（留黑边）</option>
+        <option value="fill">拉伸铺满（会变形）</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label>目标尺寸</label>
+      <input id="mediaW" type="number" min="16" max="1024" style="width:82px">
+      <span style="color:var(--muted-foreground);font-size:12px">×</span>
+      <input id="mediaH" type="number" min="16" max="1024" style="width:82px">
+      <button id="mediaFitWidget" class="ghost" style="height:30px">按控件尺寸</button>
+      <button id="mediaFitCanvas" class="ghost" style="height:30px">按画布</button>
+    </div>
+
+    <div class="slider-row">
+      <label>缩放</label>
+      <input type="range" id="mediaZoom" min="0.2" max="4" step="0.02" value="1">
+      <span class="val" id="mediaZoomVal">100%</span>
+      <button id="mediaZoomReset" class="ghost" style="height:26px;padding:0 10px;font-size:11px">重置</button>
+    </div>
+
+    <div class="slider-row">
+      <label>清晰度</label>
+      <input type="range" id="mediaQuality" min="0.20" max="0.98" step="0.02" value="0.85">
+      <span class="val" id="mediaQualityVal">0.85</span>
+    </div>
+
+    <div class="media-actions">
+      <button id="mediaCancel">取消</button>
+      <button id="mediaConfirm" class="primary">转换并插入</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

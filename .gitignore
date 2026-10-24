@@ -1,0 +1,39 @@
+# ---- 构建产物 ----
+native/build/
+native/*.obj
+native/build.bat.bak
+
+# WebView2 时代遗留的 NuGet 包（本项目不用 WebView2）
+native/packages/
+
+# ---- 早期 Node/Electron 原型产物 ----
+node_modules/
+dist/
+
+# ---- 采集样本与素材（体积大 / 版权归原厂） ----
+captured/
+主题/
+素材/
+ui_shots/
+assets/
+research_theme_editors.md
+
+# ---- 工具脚本的中间产物与一次性补丁 ----
+tools/_*
+tools/*.png
+tools/patch-*.py
+tools/fix-*.py
+tools/crack-video.py
+tools/decrypt-video.py
+tools/search-decrypt.py
+tools/hook-*
+
+# ---- 其它 ----
+last-frame.jpg
+*.log
+*.tmp
+__pycache__/
+.venv/
+.vscode/
+.DS_Store
+Thumbs.db

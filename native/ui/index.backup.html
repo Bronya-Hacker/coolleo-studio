@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coolleo Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%2318181b%22/><circle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22none%22 stroke=%22%23fafafa%22 stroke-width=%223%22 stroke-dasharray=%2237 13%22/></svg>">
+<style>
+  /* ===== shadcn/ui neutral (light) ===== */
+  :root{
+    --background:#ffffff;
+    --foreground:#09090b;
+    --card:#ffffff;
+    --primary:#18181b;
+    --primary-foreground:#fafafa;
+    --secondary:#f4f4f5;
+    --muted:#f4f4f5;
+    --muted-foreground:#71717b;
+    --accent:#f4f4f5;
+    --accent-foreground:#18181b;
+    --border:#e4e4e7;
+    --input:#e4e4e7;
+    --ring:#9f9fa9;
+    --destructive:#dc2626;
+    --ok:#059669;
+    --warn:#d97706;
+    --radius:10px;
+  }
+
+  /* ===== dark ===== */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --background:#09090b;
+      --foreground:#fafafa;
+      --card:#1c1c1f;
+      --primary:#e4e4e7;
+      --primary-foreground:#18181b;
+      --secondary:#27272a;
+      --muted:#27272a;
+      --muted-foreground:#9f9fa9;
+      --accent:#27272a;
+      --accent-foreground:#fafafa;
+      --border:rgba(255,255,255,.10);
+      --input:rgba(255,255,255,.15);
+      --ring:#71717b;
+      --destructive:#f87171;
+      --ok:#34d399;
+      --warn:#fbbf24;
+    }
+  }
+
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;height:100%;
+    background:var(--background);
+    color:var(--foreground);
+    font:13px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ===== 三栏布局（关键修复区）===== */
+  .app{
+    display:flex;
+    align-items:stretch;
+    height:100%;
+    gap:16px;
+    padding:20px;
+    overflow:hidden;
+  }
+  .col{
+    display:flex;flex-direction:column;gap:16px;
+    min-height:0;
+  }
+  .left{width:266px;flex:0 0 266px;min-width:0}
+  .mid{flex:1 1 auto;min-width:0;overflow:hidden}
+  .right{width:296px;flex:0 0 296px;min-width:0}
+
+  /* ===== 卡片 rounded-20 + bg-muted ===== */
+  .panel{
+    background:var(--muted);
+    border-radius:20px;
+    padding:16px;
+    min-height:0;
+    min-width:0;
+  }
+  .panel.grow{flex:1 1 auto;overflow:auto}
+
+  h3{
+    margin:0 0 12px;
+    font-size:11px;font-weight:500;letter-spacing:.02em;
+    color:var(--muted-foreground);
+    display:flex;align-items:baseline;gap:6px;
+    flex-wrap:wrap;
+  }
+  h3 span{font-size:10.5px;font-weight:400;opacity:.75}
+
+  /* ===== 按钮 pill ===== */
+  button{
+    display:inline-flex;align-items:center;justify-content:center;
+    height:32px;padding:0 13px;
+    border-radius:9999px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--foreground);
+    font-size:12.5px;font-family:inherit;
+    cursor:pointer;white-space:nowrap;
+    transition:background-color .15s ease,border-color .15s ease,color .15s ease;
+  }
+  button:hover{background:var(--accent);color:var(--accent-foreground)}
+  button:active{opacity:.85}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{
+    background:var(--primary);color:var(--primary-foreground);border-color:transparent;
+  }
+  button.primary:hover{background:var(--primary);opacity:.9;color:var(--primary-foreground)}
+
+  .btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:9px;min-width:0}
+  .row label{width:56px;flex-shrink:0;font-size:11.5px;color:var(--muted-foreground)}
+
+  /* ===== 输入 rounded-14 ===== */
+  input,select{
+    flex:1 1 auto;min-width:0;
+    height:34px;padding:0 11px;
+    border-radius:14px;
+    border:1px solid var(--input);
+    background:transparent;
+    color:var(--foreground);
+    font-size:12.5px;font-family:inherit;
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  input:hover,select:hover{border-color:var(--ring)}
+  input:focus,select:focus{
+    outline:none;border-color:var(--ring);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+  input[type=color]{width:44px;flex:none;padding:2px;cursor:pointer;border-radius:12px}
+  input[type=number]{font-variant-numeric:tabular-nums}
+
+  .kv{font-size:12px;margin:5px 0;color:var(--muted-foreground);
+      display:flex;justify-content:space-between;gap:8px;min-width:0}
+  .kv b{color:var(--foreground);font-weight:500}
+
+  .hint{font-size:11px;line-height:1.6;color:var(--muted-foreground);padding:4px 0}
+  .hint.ok{color:var(--ok)}
+  .hint.bad{color:var(--destructive)}
+
+  /* ===== 预览画布：自适应，绝不撑破 ===== */
+  .preview-wrap{
+    display:flex;justify-content:center;align-items:center;
+    padding:6px 0 2px;
+    min-width:0;
+  }
+  canvas{
+    display:block;
+    background:#000;
+    border-radius:16px;
+    border:1px solid var(--border);
+    width:100%;
+    max-width:480px;
+    height:auto;
+    aspect-ratio:4 / 3;
+  }
+
+  .stat{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;
+        font-size:11px;color:var(--muted-foreground);letter-spacing:.02em}
+
+  .devices{font-size:11px;font-family:ui-monospace,Consolas,monospace;
+           max-height:88px;overflow:auto;color:var(--muted-foreground)}
+  .device{padding:1px 0}
+
+  /* ===== 日志 ===== */
+  .log{
+    font-family:ui-monospace,"Cascadia Code",Consolas,monospace;
+    font-size:11.5px;line-height:1.75;
+    overflow:auto;
+    background:var(--background);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:10px 12px;
+    height:112px;
+    color:var(--muted-foreground);
+  }
+  .log div{padding:1px 0;word-break:break-all}
+
+  /* ===== 控件库 ===== */
+  .palette{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .palette button{height:36px;background:var(--background);border-color:var(--border)}
+  .palette button:hover{background:var(--accent);border-color:var(--ring)}
+
+  /* ===== 图层 ===== */
+  .layer{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:8px 11px;margin-bottom:4px;
+    border-radius:12px;font-size:12.5px;cursor:pointer;
+    border:1px solid transparent;min-width:0;
+    transition:background-color .15s ease,border-color .15s ease;
+  }
+  .layer:hover{background:var(--background)}
+  .layer.sel{background:var(--background);border-color:var(--ring);font-weight:500}
+  .layer .lid{font-size:10px;color:var(--muted-foreground);
+              font-family:ui-monospace,monospace;flex-shrink:0}
+
+  /* ===== 徽标 ===== */
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;
+    height:20px;padding:0 8px;border-radius:9999px;
+    font-size:10.5px;font-weight:500;letter-spacing:.02em;
+  }
+  .badge.on{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .badge.off{background:color-mix(in srgb,var(--destructive) 14%,transparent);color:var(--destructive)}
+  .badge.on::before,.badge.off::before{
+    content:'';width:5px;height:5px;border-radius:50%;background:currentColor;
+  }
+
+  /* ===== 滚动条 ===== */
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ring)}
+
+  /* ===== 属性面板 ===== */
+  #props{min-width:0}
+  #props .row{margin-bottom:8px}
+  #props .row label{width:52px}
+  #props > .hint:only-child{
+    display:block;padding:26px 10px;text-align:center;
+    border:1px dashed var(--border);border-radius:14px;
+  }
+
+  /* ===== 指标 ===== */
+  #metrics{display:flex;flex-direction:column;gap:1px;min-width:0}
+  #metrics .kv{
+    padding:5px 9px;margin:0;border-radius:10px;
+    font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
+    transition:background-color .15s ease;
+  }
+  #metrics .kv:hover{background:var(--background)}
+
+  /* 空状态 */
+  #layers:empty::after{
+    content:'暂无图层，从左侧添加控件';display:block;
+    padding:26px 10px;text-align:center;font-size:11.5px;
+    color:var(--muted-foreground);border:1px dashed var(--border);border-radius:14px;
+  }
+  #metrics:empty::after{
+    content:'采集指标中…';display:block;padding:20px 10px;
+    text-align:center;font-size:11.5px;color:var(--muted-foreground);
+  }
+
+  /* ===== 窄屏保护：1100px 以下收窄侧栏 ===== */
+  @media (max-width:1280px){
+    .left{width:236px;flex:0 0 236px}
+    .right{width:262px;flex:0 0 262px}
+    .app{gap:12px;padding:14px}
+  }
+  @media (max-width:1080px){
+    .left{width:210px;flex:0 0 210px}
+    .right{width:230px;flex:0 0 230px}
+  }
+
+  /* 按钮忙碌态：保留文字，右侧转圈 */
+  button.is-busy{
+    pointer-events:none;
+    opacity:.62;
+  }
+  button.is-busy::after{
+    content:'';
+    display:inline-block;
+    width:11px;height:11px;
+    margin-left:7px;
+    border:2px solid currentColor;
+    border-right-color:transparent;
+    border-radius:50%;
+    animation:coolleo-spin .65s linear infinite;
+    vertical-align:-1px;
+    flex-shrink:0;
+  }
+  @keyframes coolleo-spin{to{transform:rotate(360deg)}}
+
+  /* ===== 禁用态强覆盖（放在所有 hover 规则之后）=====
+     不加这段的话，:hover 的 background/opacity 会盖过 :disabled，
+     表现为禁用按钮鼠标移上去突然变深/变黑。 */
+  button:disabled,
+  button:disabled:hover,
+  button:disabled:active,
+  button:disabled:focus,
+  button:disabled:focus-visible{
+    background:transparent;
+    color:var(--muted-foreground);
+    border-color:var(--border);
+    opacity:.42;
+    cursor:not-allowed;
+    transform:none;
+    box-shadow:none;
+    pointer-events:auto;      /* 保留 not-allowed 光标，不能设 none */
+  }
+
+  /* 主按钮禁用：保持深底但整体变淡 */
+  button.primary:disabled,
+  button.primary:disabled:hover,
+  button.primary:disabled:active{
+    background:var(--primary);
+    color:var(--primary-foreground);
+    border-color:transparent;
+    opacity:.38;
+  }
+
+  /* 控件库按钮禁用：保持原底色 */
+  .palette button:disabled,
+  .palette button:disabled:hover{
+    background:var(--background);
+    border-color:var(--border);
+    color:var(--muted-foreground);
+    opacity:.42;
+  }
+
+  /* 忙碌态优先于禁用态外观（自己会转圈） */
+  button.is-busy:disabled,
+  button.is-busy:disabled:hover{
+    opacity:.62;
+    cursor:default;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- 左：控件 + 画布 + 图层 -->
+<aside class="col left">
+  <section class="panel">
+    <h3>控件库</h3>
+    <div id="palette" class="palette"></div>
+  </section>
+
+  <section class="panel">
+    <h3>画布 <span>320×240 · 自动旋转</span></h3>
+    <div class="row"><label>FPS</label><input id="cfps" type="number"></div>
+  </section>
+
+  <section class="panel grow">
+    <h3>图层</h3>
+    <div id="layers"></div>
+  </section>
+</aside>
+
+<!-- 中：预览 + 设备 + 副屏 + 日志 -->
+<main class="col mid">
+  <section class="panel">
+    <h3>预览 <span id="stat" class="stat"></span></h3>
+    <div class="preview-wrap"><canvas id="cv" width="320" height="240"></canvas></div>
+    <div class="btn-row">
+      <button id="btnPush" class="primary">开始推送到屏幕</button>
+      <button id="btnOnce">渲染一帧</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>设备</h3>
+    <div class="btn-row" style="margin-top:0">
+      <button id="btnConn" class="primary">连接设备</button>
+      <button id="btnDisc">断开</button>
+      <button id="btnRefresh">刷新状态</button>
+    </div>
+    <div class="kv" style="margin-top:12px">
+      <span>状态</span>
+      <span><b id="st">未连接</b> <span id="badge" class="badge off">OFF</span></span>
+    </div>
+    <div id="stats" class="kv stat"></div>
+    <div id="devlist" class="devices"></div>
+  </section>
+
+  <section class="panel">
+    <h3>副屏 <span>投送到散热器</span></h3>
+    <div class="row">
+      <label>捕获源</label>
+      <select id="capMode">
+        <option value="display">整个显示器</option>
+        <option value="window">指定窗口</option>
+      </select>
+    </div>
+
+    <div id="rowDisplay">
+      <div class="row">
+        <label>显示器</label>
+        <select id="capDisplay"></select>
+      </div>
+      <div class="btn-row" style="margin-top:0"><button id="btnRefreshDisp">刷新显示器</button></div>
+    </div>
+
+    <div id="rowWindow" style="display:none">
+      <div class="row">
+        <label>窗口</label>
+        <select id="capWindow"></select>
+      </div>
+      <div class="btn-row" style="margin-top:0"><button id="btnRefreshWin">刷新窗口列表</button></div>
+    </div>
+
+    <div class="row" style="margin-top:9px"><label>目标FPS</label><input id="capFps" type="number" value="20" min="1" max="30"></div>
+    <div class="btn-row">
+      <button id="btnCap" class="primary">开启副屏</button>
+      <button id="btnCapOff">关闭</button>
+    </div>
+    <div class="hint" id="capHint">后台 C++ 抓取推送，关掉本页面也能继续</div>
+  </section>
+
+  <section class="panel">
+    <h3>日志</h3>
+    <div id="log" class="log"></div>
+  </section>
+</main>
+
+<!-- 右：属性 + 指标 -->
+<aside class="col right">
+  <section class="panel grow">
+    <h3>属性</h3>
+    <div id="props"><div class="hint">未选中控件</div></div>
+  </section>
+
+  <section class="panel">
+    <h3>系统指标</h3>
+    <div id="metrics" class="kv stat"></div>
+  </section>
+</aside>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = (t, msg) => {
+  const p = document.createElement('div');
+  p.style.color = t === 'error' ? 'var(--bad)' : t === 'ok' ? 'var(--ok)' : 'var(--muted)';
+  p.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  $('log').appendChild(p);
+  $('log').scrollTop = $('log').scrollHeight;
+};
+
+// ---------------- 渲染器（与 C++ 端无关，纯前端，可自由改） ----------------
+const RENDERERS = {
+  arcGauge: {
+    name: '环形仪表',
+    defaults: { value: 50, label: 'CPU', arcColor: '#22d3ee', trackColor: '#222222', thickness: 10, font: 'bold 20px sans-serif' },
+    schema: [
+      { k: 'value', n: '取值0-100', t: 'number' },
+      { k: 'label', n: '标题', t: 'text' },
+      { k: 'arcColor', n: '进度色', t: 'color' },
+      { k: 'trackColor', n: '底环色', t: 'color' },
+      { k: 'thickness', n: '环宽', t: 'number' },
+      { k: 'font', n: '字体', t: 'text' }
+    ],
+    draw(c, w, p) {
+      const r = Math.min(w.w, w.h) / 2 - (+p.thickness || 10) / 2 - 2;
+      const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+      const v = Math.max(0, Math.min(100, +p.value || 0));
+      c.lineWidth = +p.thickness || 10;
+      c.lineCap = 'round';
+      c.beginPath(); c.strokeStyle = p.trackColor; c.arc(cx, cy, r, Math.PI * 0.75, Math.PI * 2.25); c.stroke();
+      c.beginPath(); c.strokeStyle = p.arcColor; c.arc(cx, cy, r, Math.PI * 0.75, Math.PI * 0.75 + Math.PI * 1.5 * v / 100); c.stroke();
+      c.fillStyle = '#fff'; c.font = p.font; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(Math.round(v) + '%', cx, cy);
+      if (p.label) { c.font = '11px sans-serif'; c.fillStyle = '#9aa7b5'; c.fillText(p.label, cx, cy + r * 0.55); }
+    }
+  },
+  text: {
+    name: '文字',
+    defaults: { template: 'CPU ${value}%', color: '#ffffff', font: 'bold 18px sans-serif', align: 'center' },
+    schema: [
+      { k: 'template', n: '模板', t: 'text' },
+      { k: 'color', n: '颜色', t: 'color' },
+      { k: 'font', n: '字体', t: 'text' },
+      { k: 'align', n: '对齐', t: 'select', options: [['左', 'left'], ['中', 'center'], ['右', 'right']] }
+    ],
+    draw(c, w, p, bindings, metrics) {
+      let s = String(p.template || '');
+      s = s.replace(/\$\{(\w+)\}/g, (m, k) => {
+        const key = bindings[k] || k;
+        return key in metrics ? (Math.round(metrics[key] * 10) / 10) : '';
+      });
+      c.fillStyle = p.color; c.font = p.font; c.textBaseline = 'middle';
+      c.textAlign = p.align || 'left';
+      const x = p.align === 'center' ? w.x + w.w / 2 : p.align === 'right' ? w.x + w.w : w.x;
+      c.fillText(s, x, w.y + w.h / 2);
+    }
+  },
+  bar: {
+    name: '进度条',
+    defaults: { value: 50, fillColor: '#22d3ee', bgColor: '#222222', radius: 4, direction: 'h' },
+    schema: [
+      { k: 'value', n: '取值0-100', t: 'number' },
+      { k: 'fillColor', n: '填充色', t: 'color' },
+      { k: 'bgColor', n: '背景色', t: 'color' },
+      { k: 'radius', n: '圆角', t: 'number' },
+      { k: 'direction', n: '方向', t: 'select', options: [['横', 'h'], ['竖', 'v']] }
+    ],
+    draw(c, w, p) {
+      const v = Math.max(0, Math.min(100, +p.value || 0)) / 100;
+      const rr = +p.radius || 4;
+      const box = (x, y, ww, hh, fill) => {
+        c.beginPath();
+        const r = Math.min(rr, ww / 2, hh / 2);
+        c.moveTo(x + r, y); c.lineTo(x + ww - r, y); c.quadraticCurveTo(x + ww, y, x + ww, y + r);
+        c.lineTo(x + ww, y + hh - r); c.quadraticCurveTo(x + ww, y + hh, x + ww - r, y + hh);
+        c.lineTo(x + r, y + hh); c.quadraticCurveTo(x, y + hh, x, y + hh - r);
+        c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+        c.closePath(); c.fillStyle = fill; c.fill();
+      };
+      box(w.x, w.y, w.w, w.h, p.bgColor);
+      if (p.direction === 'v') { const h = w.h * v; box(w.x, w.y + w.h - h, w.w, h, p.fillColor); }
+      else box(w.x, w.y, w.w * v, w.h, p.fillColor);
+    }
+  },
+  panel: {
+    name: '色块',
+    defaults: { color: '#101010', radius: 8 },
+    schema: [{ k: 'color', n: '颜色', t: 'color' }, { k: 'radius', n: '圆角', t: 'number' }],
+    draw(c, w, p) {
+      const r = +p.radius || 8;
+      c.beginPath();
+      const rr = Math.min(r, w.w / 2, w.h / 2);
+      c.moveTo(w.x + rr, w.y); c.arcTo(w.x + w.w, w.y, w.x + w.w, w.y + w.h, rr);
+      c.arcTo(w.x + w.w, w.y + w.h, w.x, w.y + w.h, rr);
+      c.arcTo(w.x, w.y + w.h, w.x, w.y, rr); c.arcTo(w.x, w.y, w.x + w.w, w.y, rr);
+      c.closePath(); c.fillStyle = p.color; c.fill();
+    }
+  }
+};
+
+// ---------------- 主题状态 ----------------
+let theme = {
+  id: 'default', name: '我的主题',
+  canvas: { width: 320, height: 240, fps: 20, background: '#0A0E14' },
+  widgets: [
+    // 横版布局：发送时自动顺时针转 90 度给设备
+    { id: 'bg', type: 'panel', rect: { x: '0%', y: '0%', w: '100%', h: '13%' }, props: { color: '#0e7490', radius: 0 }, z: 0 },
+    { id: 'tt', type: 'text', rect: { x: '0%', y: '0%', w: '100%', h: '13%' }, props: { template: 'COOLLEO STUDIO', color: '#ffffff', font: 'bold 15px sans-serif', align: 'center' }, z: 1 },
+    { id: 'g1', type: 'arcGauge', rect: { x: '30%', y: '16%', w: '40%', h: '44%' }, props: { label: 'CPU', arcColor: '#22d3ee', thickness: 9, font: 'bold 18px sans-serif' }, bindings: { value: 'cpu.load' }, z: 2 },
+    { id: 'g2', type: 'arcGauge', rect: { x: '2%', y: '58%', w: '29%', h: '34%' }, props: { label: '内存', arcColor: '#f472b6', thickness: 7, font: 'bold 13px sans-serif' }, bindings: { value: 'mem.usedPercent' }, z: 2 },
+    { id: 'g3', type: 'arcGauge', rect: { x: '69%', y: '58%', w: '29%', h: '34%' }, props: { label: '磁盘', arcColor: '#4ade80', thickness: 7, font: 'bold 13px sans-serif' }, bindings: { value: 'disk.usedPercent' }, z: 2 },
+    { id: 't1', type: 'text', rect: { x: '32%', y: '62%', w: '36%', h: '10%' }, props: { template: '${value}%', color: '#ffffff', font: 'bold 14px sans-serif', align: 'center' }, bindings: { value: 'mem.usedPercent' }, z: 3 },
+    { id: 't2', type: 'text', rect: { x: '0%', y: '93%', w: '100%', h: '7%' }, props: { template: '127.0.0.1:8765', color: '#3A5060', font: '10px sans-serif', align: 'center' }, z: 3 }
+  ]
+};
+let selected = null;
+let metrics = {};
+let pushing = false;
+let pushTimer = null;
+
+// ---------------- 预览渲染 ----------------
+const cvEl = $('cv');
+const ctx = cvEl.getContext('2d', { alpha: false });
+
+function resolve(v, base) {
+  if (typeof v === 'number') return v;
+  const s = String(v).trim();
+  if (s.endsWith('%')) {
+    const p = parseFloat(s.slice(0, -1));
+    return isFinite(p) ? p / 100 * base : 0;
+  }
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+function renderFrame() {
+  const W = theme.canvas.width, H = theme.canvas.height;
+  if (cvEl.width !== W) cvEl.width = W;
+  if (cvEl.height !== H) cvEl.height = H;
+
+  ctx.fillStyle = theme.canvas.background || '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  const list = [...theme.widgets].sort((a, b) => (a.z || 0) - (b.z || 0));
+  for (const w of list) {
+    const r = RENDERERS[w.type];
+    if (!r) continue;
+    const rect = {
+      x: resolve(w.rect.x, W), y: resolve(w.rect.y, H),
+      w: resolve(w.rect.w, W), h: resolve(w.rect.h, H)
+    };
+    const props = { ...r.defaults, ...(w.props || {}) };
+    // 绑定值注入
+    for (const [alias, key] of Object.entries(w.bindings || {})) {
+      if (key in metrics) props[alias] = metrics[key];
+    }
+    try { r.draw(ctx, rect, props, w.bindings || {}, metrics); }
+    catch (e) { log('error', '绘制失败 ' + w.id + ': ' + e.message); }
+  }
+}
+
+// 预览循环
+setInterval(renderFrame, 1000 / Math.max(1, theme.canvas.fps || 20));
+
+// ---------------- UI 构建 ----------------
+function buildPalette() {
+  const box = $('palette');
+  box.innerHTML = '';
+  for (const [type, r] of Object.entries(RENDERERS)) {
+    const b = document.createElement('button');
+    b.textContent = r.name;
+    b.onclick = () => addWidget(type);
+    box.appendChild(b);
+  }
+}
+
+function addWidget(type) {
+  const id = 'w' + Date.now().toString(36);
+  const r = RENDERERS[type];
+  theme.widgets.push({
+    id, type,
+    rect: { x: '25%', y: '35%', w: '50%', h: '30%' },
+    props: { ...r.defaults },
+    z: theme.widgets.length
+  });
+  selected = id;
+  renderLayers(); renderProps();
+  log('ok', '已添加 ' + r.name);
+}
+
+function renderLayers() {
+  const box = $('layers');
+  box.innerHTML = '';
+  for (const w of theme.widgets) {
+    const d = document.createElement('div');
+    d.className = 'layer' + (w.id === selected ? ' sel' : '');
+    d.innerHTML = '<span>' + (RENDERERS[w.type] ? RENDERERS[w.type].name : w.type) + '</span><span style="color:var(--muted);font-size:10px">' + w.id + '</span>';
+    d.onclick = () => { selected = w.id; renderLayers(); renderProps(); };
+    box.appendChild(d);
+  }
+}
+
+function renderProps() {
+  const box = $('props');
+  const w = theme.widgets.find(x => x.id === selected);
+  if (!w) { box.innerHTML = '<div class="hint">未选中控件</div>'; return; }
+  const r = RENDERERS[w.type];
+  box.innerHTML = '<div class="hint">类型：' + r.name + '（' + w.id + '）</div>';
+
+  const row = (label, el) => {
+    const d = document.createElement('div');
+    d.className = 'row';
+    const l = document.createElement('label'); l.textContent = label;
+    d.appendChild(l); d.appendChild(el); box.appendChild(d);
+  };
+
+  for (const s of r.schema) {
+    let inp;
+    if (s.t === 'select') {
+      inp = document.createElement('select');
+      for (const [n, v] of s.options) {
+        const o = document.createElement('option'); o.value = v; o.textContent = n;
+        inp.appendChild(o);
+      }
+      inp.value = String(w.props[s.k] ?? '');
+      inp.onchange = () => { w.props[s.k] = inp.value; };
+    } else {
+      inp = document.createElement('input');
+      inp.type = s.t;
+      inp.value = String(w.props[s.k] ?? '');
+      inp.oninput = () => {
+        w.props[s.k] = s.t === 'number' ? Number(inp.value) : inp.value;
+      };
+    }
+    row(s.n, inp);
+  }
+
+  // 数据绑定
+  const bd = document.createElement('div');
+  bd.className = 'row';
+  const bl = document.createElement('label'); bl.textContent = '绑定';
+  const sel = document.createElement('select');
+  sel.innerHTML = '<option value="">（不绑定）</option>';
+  const opts = ['cpu.load', 'mem.usedPercent', 'mem.usedGB', 'mem.totalGB', 'disk.usedPercent', 'disk.freeGB', 'net.recvTotal', 'net.sendTotal'];
+  for (const o of opts) {
+    const op = document.createElement('option'); op.value = o; op.textContent = o;
+    sel.appendChild(op);
+  }
+  sel.value = (w.bindings && w.bindings.value) || '';
+  sel.onchange = () => {
+    w.bindings = sel.value ? { value: sel.value } : {};
+  };
+  bd.appendChild(bl); bd.appendChild(sel);
+  box.appendChild(bd);
+
+  const del = document.createElement('button');
+  del.textContent = '删除控件';
+  del.style.marginTop = '8px';
+  del.onclick = () => {
+    theme.widgets = theme.widgets.filter(x => x.id !== w.id);
+    selected = null; renderLayers(); renderProps();
+  };
+  box.appendChild(del);
+}
+
+// 画布设置（尺寸固定 240x320，只允许改 fps）
+function bindCanvas() {
+  $('cfps').value = theme.canvas.fps;
+  $('cfps').oninput = e => { theme.canvas.fps = +e.target.value || 20; };
+}
+
+buildPalette(); renderLayers(); renderProps(); bindCanvas();
+
+// ---------------- 与 C++ 后台通信 ----------------
+async function api(path, opts) {
+  try {
+    const r = await fetch(path, opts);
+    return await r.json();
+  } catch (e) {
+    log('error', '后台未响应：' + e.message + '（确认服务在运行）');
+    return null;
+  }
+}
+
+// ===== 按钮忙碌态（即时反馈）=====
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const MIN_BUSY_MS = 320;   // 忙碌态最短显示时间，避免一闪而过
+
+// 结束忙碌：保证至少显示 MIN_BUSY_MS，再清掉并回填真实状态
+async function endBusy(t0, ids, texts) {
+  const wait = Math.max(0, MIN_BUSY_MS - (Date.now() - t0));
+  if (wait) await sleep(wait);
+  ids.forEach((id, i) => clearBusy(id, texts ? texts[i] : undefined));
+  refreshStatus();
+}
+const BUSY = new Set();
+function setBusy(id, text) {
+  const b = $(id);
+  if (!b) return;
+  BUSY.add(id);
+  b.disabled = true;
+  b.classList.add('is-busy');
+  if (text) b.textContent = text;
+}
+function clearBusy(id, text) {
+  const b = $(id);
+  BUSY.delete(id);
+  if (!b) return;
+  b.classList.remove('is-busy');
+  if (text) b.textContent = text;
+}
+
+// 统一根据后端状态刷新所有控件可用性（状态机核心）
+function applyState(s) {
+  if (!s) return;
+  const open = !!s.open;
+  const capture = !!s.capture;
+  const webPush = !!s.pushing;
+
+  $('st').textContent = open ? '已连接' : '未连接';
+  $('badge').className = 'badge ' + (open ? 'on' : 'off');
+  $('badge').textContent = open ? 'ON' : 'OFF';
+  $('stats').textContent = `帧=${s.frames} 包=${s.packets} 字节=${(s.bytes/1048576).toFixed(1)}MB 错误=${s.errors}`;
+
+  // 副屏抢占了屏幕 -> 前端必须停掉自己的推送循环
+  if (capture && pushing) {
+    clearInterval(pushTimer);
+    pushTimer = null;
+    pushing = false;
+    log('warn', '副屏已接管屏幕，主题推送自动停止');
+  }
+
+  // 忙碌中的按钮保持忙碌外观；非忙碌的按钮恢复文案 + 可用性
+  if (!BUSY.has('btnConn')) { $('btnConn').disabled = open; $('btnConn').textContent = '连接设备'; }
+  if (!BUSY.has('btnDisc')) { $('btnDisc').disabled = !open; $('btnDisc').textContent = '断开'; }
+  if (!BUSY.has('btnCap')) { $('btnCap').disabled = !open || capture; $('btnCap').textContent = '开启副屏'; }
+  if (!BUSY.has('btnCapOff')) { $('btnCapOff').disabled = !capture; $('btnCapOff').textContent = '关闭'; }
+  if (!BUSY.has('btnPush')) {
+    $('btnPush').disabled = !open || capture;
+    $('btnPush').textContent = pushing ? '停止推送' : '开始推送到屏幕';
+  }
+  if (!BUSY.has('btnOnce')) { $('btnOnce').disabled = !open || capture; $('btnOnce').textContent = '渲染一帧'; }
+
+  const engine = s.dxgi ? 'DXGI' : 'GDI';
+  const modeText = s.captureMode === 1 ? '窗口' : '显示器';
+  $('capHint').className = 'hint' + (capture ? ' ok' : '');
+  $('capHint').textContent = !open
+    ? '请先连接设备'
+    : capture
+      ? `副屏运行中 · ${modeText} · ${engine} · 主题推送已暂停`
+      : (webPush ? '主题推送中，开启副屏会接管屏幕' : '副屏已关闭');
+}
+
+async function refreshStatus() {
+  const s = await api('/api/status');
+  if (s) applyState(s);
+}
+
+$('btnConn').onclick = async () => {
+  const t0 = Date.now();
+  setBusy('btnConn', '连接中');
+  log('info', '正在连接设备…');
+  try {
+    const r = await api('/api/connect', { method: 'POST' });
+    if (r && r.ok) {
+      log('ok', '设备已连接，推送首帧…');
+      const sent = await pushOnce(true);
+      log(sent ? 'ok' : 'error', sent ? '首帧已推送' : '首帧推送失败');
+    } else {
+      log('error', '连接失败: ' + (r ? r.error : '未知'));
+    }
+  } finally {
+    await endBusy(t0, ['btnConn'], ['连接设备']);
+  }
+};
+$('btnDisc').onclick = async () => {
+  const t0 = Date.now();
+  setBusy('btnDisc', '断开中');
+  try {
+    await api('/api/disconnect', { method: 'POST' });
+    log('ok', '已断开');
+  } finally {
+    await endBusy(t0, ['btnDisc'], ['断开']);
+  }
+};
+$('btnRefresh').onclick = async () => {
+  const t0 = Date.now();
+  setBusy('btnRefresh', '刷新中');
+  try {
+    const s = await api('/api/status');
+    if (s) { applyState(s); log('ok', '状态已刷新'); }
+    else log('error', '后台无响应');
+  } finally {
+    await endBusy(t0, ['btnRefresh'], ['刷新状态']);
+  }
+};
+
+// 推送：每帧编码 JPEG 发给后台
+// 发送前旋转 90 度：320x240 横版画布 -> 240x320 竖版 JPEG
+const rotCv = document.createElement('canvas');
+rotCv.width = 240;
+rotCv.height = 320;
+const rotCtx = rotCv.getContext('2d', { alpha: false });
+
+function rotate90(srcCanvas) {
+  rotCtx.save();
+  rotCtx.fillStyle = '#000';
+  rotCtx.fillRect(0, 0, rotCv.width, rotCv.height);
+  rotCtx.translate(rotCv.width, 0);
+  rotCtx.rotate(Math.PI / 2);   // 顺时针 90°
+  rotCtx.drawImage(srcCanvas, 0, 0);
+  rotCtx.restore();
+  return rotCv;
+}
+
+// ===== 帧差分 + 自适应质量 =====
+// HID 只有 20fps 带宽，画面没变就不该重复发；帧太大就降质量保帧率。
+let lastSig = null;          // 上一帧签名
+let lastQ = 0.88;            // 当前 JPEG 质量
+let skippedFrames = 0;       // 跳过帧计数
+let sentFrames = 0;          // 实际发送帧计数
+let skipSinceSend = 0;       // 距上次发送跳过了多少帧（保活用）
+const TARGET_BYTES = 13000;  // 单帧目标字节数（约 20fps 下的舒适区间）
+const DIFF_THRESHOLD = 1.2;  // 平均通道差低于此值视为静止
+
+const sigCv = document.createElement('canvas');
+sigCv.width = 16;
+sigCv.height = 12;
+const sigCtx = sigCv.getContext('2d', { alpha: false });
+
+// 把画面缩成 16x12 采样，作为指纹
+function makeSignature() {
+  sigCtx.drawImage(cvEl, 0, 0, sigCv.width, sigCv.height);
+  const d = sigCtx.getImageData(0, 0, sigCv.width, sigCv.height).data;
+  const arr = new Uint8Array(sigCv.width * sigCv.height * 3);
+  for (let i = 0, j = 0; i < d.length; i += 4, j += 3) {
+    arr[j] = d[i]; arr[j + 1] = d[i + 1]; arr[j + 2] = d[i + 2];
+  }
+  return arr;
+}
+
+// 两帧签名的平均通道差（0~255）
+function sigDiff(a, b) {
+  if (!a || !b || a.length !== b.length) return 255;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / a.length;
+}
+
+// 根据实际字节数微调质量
+function adaptQuality(bytes) {
+  if (bytes > TARGET_BYTES * 1.3) lastQ = Math.max(0.45, lastQ - 0.07);
+  else if (bytes > TARGET_BYTES * 1.1) lastQ = Math.max(0.45, lastQ - 0.03);
+  else if (bytes < TARGET_BYTES * 0.55) lastQ = Math.min(0.93, lastQ + 0.04);
+  else if (bytes < TARGET_BYTES * 0.8) lastQ = Math.min(0.93, lastQ + 0.02);
+}
+
+async function pushOnce(force) {
+  renderFrame();
+
+  // 1) 帧差分：画面没变就不发
+  const sig = makeSignature();
+  const diff = sigDiff(lastSig, sig);
+
+  // 心跳保活：即使画面静止，每约 40 帧（~2 秒）也必须发一帧。
+
+  // 否则后端 2 秒收不到帧会判定网页停止推送，内置仪表盘会把主题覆盖掉。
+
+  if (!force && lastSig && diff < DIFF_THRESHOLD && skipSinceSend < 40) {
+    skippedFrames++;
+
+  skipSinceSend++;
+    $('stat').textContent = ` 跳过 ${skippedFrames} / 发送 ${sentFrames} · q=${lastQ.toFixed(2)}`;
+    return true;   // 视为成功，不报错
+  }
+  lastSig = sig;
+
+  // 2) 编码 + 推送
+  const outCv = rotate90(cvEl);
+  const blob = await new Promise(res => outCv.toBlob(res, 'image/jpeg', lastQ));
+  if (!blob) { log('error', '画布编码失败'); return false; }
+
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const r = await api('/api/frame', { method: 'POST', body: buf });
+  if (!r) { log('error', '后台无响应'); return false; }
+
+  if (!r.ok) {
+    log('error', `推送失败 ${r.bodyLen ?? '?'}B ${r.err || r.error || ''}`);
+    return false;
+  }
+
+  // 3) 自适应质量
+  sentFrames++;
+  skipSinceSend = 0;   // 复位保活计数
+  adaptQuality(buf.length);
+  $('stat').textContent =
+    ` ${buf.length}B q=${lastQ.toFixed(2)} · 跳过 ${skippedFrames} / 发送 ${sentFrames}`;
+  return true;
+}
+
+$('btnOnce').onclick = () => pushOnce(true);
+
+$('btnPush').onclick = async () => {
+  if (pushing) {
+    clearInterval(pushTimer); pushTimer = null;
+    pushing = false;
+    $('btnPush').textContent = '开始推送到屏幕';
+    log('ok', '停止推送');
+    refreshStatus();
+    return;
+  }
+
+  const t0 = Date.now();
+  setBusy('btnPush', '启动中');
+  try {
+    // 先本地校验，避免无谓等待
+    const st = await api('/api/status');
+    if (!st || !st.open) { log('error', '设备未连接'); return; }
+    if (st.capture) { log('error', '副屏正在占用屏幕，请先关闭副屏'); applyState(st); return; }
+
+    pushing = true;
+    const fps = Math.max(1, Math.min(30, theme.canvas.fps || 20));
+    pushTimer = setInterval(pushOnce, 1000 / fps);
+    log('ok', '开始推送 ' + fps + 'fps');
+  } finally {
+    await endBusy(t0, ['btnPush'], ['停止推送']);
+  }
+};
+
+// 副屏控制
+let displays = [];
+let windows = [];
+
+async function loadDisplays() {
+  displays = (await api('/api/displays')) || [];
+  const sel = $('capDisplay');
+  sel.innerHTML = '';
+  displays.forEach(d => {
+    const o = document.createElement('option');
+    o.value = String(d.index);
+    o.textContent = `${d.name} ${d.width}x${d.height}${d.primary ? ' (主)' : ''}`;
+    sel.appendChild(o);
+  });
+  if (displays.length === 0) {
+    sel.innerHTML = '<option value="">（无显示器）</option>';
+  }
+}
+
+async function loadWindows() {
+  windows = (await api('/api/windows')) || [];
+  const sel = $('capWindow');
+  sel.innerHTML = '';
+  windows.forEach(w => {
+    const o = document.createElement('option');
+    o.value = String(w.hwnd);
+    o.textContent = `${w.width}x${w.height}  ${w.title.slice(0, 46)}`;
+    sel.appendChild(o);
+  });
+  if (windows.length === 0) {
+    sel.innerHTML = '<option value="">（无可用窗口）</option>';
+  }
+}
+
+$('capMode').onchange = () => {
+  const isWin = $('capMode').value === 'window';
+  $('rowWindow').style.display = isWin ? '' : 'none';
+  $('rowDisplay').style.display = isWin ? 'none' : '';
+};
+$('btnRefreshDisp').onclick = loadDisplays;
+$('btnRefreshWin').onclick = loadWindows;
+
+$('btnCap').onclick = async () => {
+  const mode = $('capMode').value === 'window' ? 1 : 0;
+  const body = { enable: true, mode };
+  if (mode === 1) {
+    body.hwnd = Number($('capWindow').value) || 0;
+    if (!body.hwnd) { log('error', '请先选一个窗口'); return; }
+  } else {
+    body.monitor = Number($('capDisplay').value) || 0;
+  }
+
+  // 立刻给反馈：先禁用并转圈，不等请求回来
+  const t0 = Date.now();
+  setBusy('btnCap', '启动中');
+  setBusy('btnCapOff');
+  setBusy('btnPush');
+  setBusy('btnOnce');
+
+  // 立刻停掉主题推送，避免抢屏
+  if (pushing) {
+    clearInterval(pushTimer); pushTimer = null;
+    pushing = false;
+    log('ok', '已停止主题推送，切换为副屏');
+  }
+
+  try {
+    const fps = +$('capFps').value || 20;
+    await api('/api/fps', { method: 'POST', body: JSON.stringify({ fps }) });
+    const r = await api('/api/capture', { method: 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) {
+      log('ok', `副屏已开启（${mode === 1 ? '窗口' : '显示器'}模式 · ${fps}fps）`);
+    } else {
+      log('error', '开启失败：' + ((r && (r.reason || r.error)) || '未知'));
+    }
+  } finally {
+    await endBusy(t0, ['btnCap', 'btnCapOff', 'btnPush', 'btnOnce'],
+                  ['开启副屏', '关闭', undefined, '渲染一帧']);
+  }
+};
+
+$('btnCapOff').onclick = async () => {
+  const t0 = Date.now();
+  setBusy('btnCapOff', '停止中');
+  setBusy('btnCap');
+  try {
+    await api('/api/capture', { method: 'POST', body: JSON.stringify({ enable: false }) });
+    log('ok', '副屏已关闭，恢复内置仪表盘');
+  } finally {
+    await endBusy(t0, ['btnCapOff', 'btnCap'], ['关闭', '开启副屏']);
+  }
+};
+
+loadDisplays();
+loadWindows();
+
+// 指标轮询
+async function pollMetrics() {
+  const m = await api('/api/metrics');
+  if (m) {
+    metrics = m;
+    const box = $('metrics');
+    box.innerHTML = '';
+    for (const [k, v] of Object.entries(m)) {
+      const d = document.createElement('div');
+      d.className = 'kv';
+      d.textContent = k + ' = ' + (Math.round(v * 10) / 10);
+      box.appendChild(d);
+    }
+  }
+}
+setInterval(pollMetrics, 1000);
+setInterval(refreshStatus, 1000);
+pollMetrics();
+refreshStatus();
+
+log('ok', '界面已加载。C++ 后台地址 http://127.0.0.1:8765');
+</script>
+</body>
+</html>
