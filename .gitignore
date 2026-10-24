@@ -37,3 +37,6 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# 发布打包产物
+dist-release/
