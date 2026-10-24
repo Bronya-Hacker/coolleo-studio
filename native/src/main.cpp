@@ -83,6 +83,7 @@ std::mutex g_lastFrameMutex;
 std::string g_themeJson;
 std::mutex g_themeMutex;
 std::atomic<bool> g_themeDirty{false};
+std::atomic<bool> g_themeDiskDirty{false};   // 主题 JSON 需要落盘
 /** 强制后端渲染（忽略网页推送），调试/验证用 */
 std::atomic<bool> g_forceBackend{false};
 uint64_t g_lastFrameDiskSave = 0;
@@ -102,6 +103,51 @@ void saveFrameToDisk(const std::vector<uint8_t>& data) {
   FILE* f = fopen(p.c_str(), "wb");
   if (!f) return;
   fwrite(data.data(), 1, data.size(), f);
+  fclose(f);
+}
+
+std::string lastThemePath() {
+  char buf[MAX_PATH] = {0};
+  GetModuleFileNameA(nullptr, buf, MAX_PATH);
+  std::string exe(buf);
+  auto pos = exe.find_last_of("\\/");
+  std::string base = (pos == std::string::npos) ? "." : exe.substr(0, pos);
+  return base + "\\last-theme.json";
+}
+
+// 启动时恢复上次使用的主题（否则重启会掉回内置仪表盘）
+void loadThemeFromDisk() {
+  std::string p = lastThemePath();
+  FILE* f = fopen(p.c_str(), "rb");
+  if (!f) return;
+  fseek(f, 0, SEEK_END);
+  long len = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  if (len > 32 && len < 4 * 1024 * 1024) {
+    std::string buf(static_cast<size_t>(len), '\0');
+    size_t rd = fread(&buf[0], 1, static_cast<size_t>(len), f);
+    buf.resize(rd);
+    if (rd > 32) {
+      std::lock_guard<std::mutex> lk(g_themeMutex);
+      g_themeJson = buf;
+      g_themeDirty = true;
+      g_themeDiskDirty = false;
+      printf("[theme] restored last-theme.json (%d bytes)\n",
+             static_cast<int>(rd));
+    }
+  }
+  fclose(f);
+}
+
+void saveThemeToDisk(const std::string& json) {
+  std::string p = lastThemePath();
+  if (json.empty()) {
+    remove(p.c_str());
+    return;
+  }
+  FILE* f = fopen(p.c_str(), "wb");
+  if (!f) return;
+  fwrite(json.data(), 1, json.size(), f);
   fclose(f);
 }
 
@@ -593,6 +639,7 @@ void handleApi(struct mg_connection* c, struct mg_http_message* hm) {
       g_themeJson = body;
     }
     g_themeDirty = true;
+    g_themeDiskDirty = true;
     mg_http_reply(c, 200, "Content-Type: application/json\r\n",
                   R"({"ok":true,"bytes":%d})", static_cast<int>(body.size()));
     return;
@@ -698,6 +745,7 @@ void handleApi(struct mg_connection* c, struct mg_http_message* hm) {
       std::lock_guard<std::mutex> lk(g_themeMutex);
       g_themeJson.clear();
     }
+    g_themeDiskDirty = true;   // 顺手把 last-theme.json 删掉
     mg_http_reply(c, 200, "Content-Type: application/json\r\n", R"({"ok":true})");
     return;
   }
@@ -1186,6 +1234,17 @@ void metricsLoop() {
     }
     json += "}}";
     wsBroadcast(json);
+
+    // 主题变了就落盘（1 秒最多一次，避免编辑时疯狂写文件）
+    if (g_themeDiskDirty.exchange(false)) {
+      std::string tj;
+      {
+        std::lock_guard<std::mutex> lk(g_themeMutex);
+        tj = g_themeJson;
+      }
+      saveThemeToDisk(tj);
+    }
+
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 }
@@ -1194,9 +1253,9 @@ void metricsLoop() {
 LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   switch (msg) {
     case WM_APP_TRAY:
-      if (LOWORD(lp) == WM_LBUTTONDBLCLK || LOWORD(lp) == WM_LBUTTONUP) {
-        openBrowser();
-      } else if (LOWORD(lp) == WM_RBUTTONUP) {
+      // 左右键都只弹菜单：单击直接开浏览器太容易误触，一开就是一串标签页
+      if (LOWORD(lp) == WM_RBUTTONUP || LOWORD(lp) == WM_LBUTTONUP ||
+          LOWORD(lp) == WM_LBUTTONDBLCLK) {
         HMENU menu = CreatePopupMenu();
         AppendMenuW(menu, MF_STRING, 1, L"打开界面");
         AppendMenuW(menu, MF_STRING, 2, L"副屏：开/关");
@@ -1311,7 +1370,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
     sendCmd(coolleo::cmd::DIS, 8);
   }
 
-  loadFrameFromDisk();   // 恢复上次的静态主题画面
+  loadThemeFromDisk();   // 恢复上次使用的主题（数据实时刷新）
+  loadFrameFromDisk();   // 恢复上次的静态画面（主题文件缺失时兜底）
 
   std::thread capThread(captureLoop);
   std::thread metricThread(metricsLoop);
