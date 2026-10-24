@@ -23,10 +23,18 @@
 | `name` | 显示名，可以中文 |
 | `category` | 分类 key，内置 `dashboard` / `clock` / `minimal` / `game` / `custom`，也可自定义 |
 | `canvas` | 固定 320×240；`fps` 上限 20（HID 带宽决定）；`background` 为兜底色 |
-| `thumb` | 128×96 JPEG 的 base64，用于主题库缩略图；手写主题可以不给 |
+| `thumb` | 主题库缩略图，**必须是 dataURL**：`data:image/jpeg;base64,/9j/4AAQ...`（128×96 JPEG）。手写主题可以不给，卡片会显示「无预览」 |
 
-> `id` / `name` / `category` 必须写在文件**最前面**。后端读分类时只看文件头部一段，
-> 而 `thumb` 有几十 KB，写在前面会把它们挤出窗口。
+> **字段顺序有讲究**：`id` / `name` / `category` 必须写在文件最前面，`thumb` 紧随其后
+> （在 `canvas` / `widgets` 之前）。后端读分类和缩略图时只扫文件头部一段，
+> `thumb` 有几十 KB，排在后面会被挤出窗口 —— 缩略图 404、分类变成「自定义」。
+
+```json
+{ "id": "...", "name": "...", "category": "...", "thumb": "data:image/jpeg;base64,...",
+  "canvas": { ... }, "widgets": [ ... ] }
+```
+
+参考实现见仓库里的 [`examples/dashboard.json`](../examples/dashboard.json)。
 
 ## 控件（widget）
 

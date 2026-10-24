@@ -133,7 +133,7 @@ themes\             保存的主题
 }
 ```
 
-字段说明见 [docs/THEME-FORMAT.md](docs/THEME-FORMAT.md)。
+字段说明见 [docs/THEME-FORMAT.md](docs/THEME-FORMAT.md)，完整示例见 [examples/dashboard.json](examples/dashboard.json)。
 
 ### 可用指标
 
