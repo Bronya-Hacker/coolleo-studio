@@ -643,30 +643,15 @@
       </div>
 </section>
 
-  <!-- 副屏 -->
+  <!-- 窗口投送 -->
   <section id="page-mirror" class="page center">
     <div class="col" style="width:100%;max-width:760px">
       <div class="panel">
-        <h2>副屏</h2>
-        <div class="sub">把显示器或窗口投送到散热器屏幕</div>
+        <h2>窗口投送</h2>
+        <div class="sub">把选中的窗口投到散热器小屏</div>
 
-        <div class="row">
-          <label>捕获源</label>
-          <select id="capMode">
-            <option value="display">整个显示器</option>
-            <option value="window">指定窗口</option>
-          </select>
-        </div>
-
-        <div id="rowDisplay">
-          <div class="row"><label>显示器</label><select id="capDisplay"></select></div>
-          <div class="btn-row" style="margin-top:0"><button id="btnRefreshDisp">刷新显示器</button></div>
-        </div>
-
-        <div id="rowWindow" style="display:none">
-          <div class="row"><label>窗口</label><select id="capWindow"></select></div>
-          <div class="btn-row" style="margin-top:0"><button id="btnRefreshWin">刷新窗口列表</button></div>
-        </div>
+        <div class="row"><label>窗口</label><select id="capWindow"></select></div>
+        <div class="btn-row" style="margin-top:0"><button id="btnRefreshWin">刷新窗口列表</button></div>
 
         <div class="row" style="margin-top:9px">
           <label>目标 FPS</label>
@@ -674,7 +659,7 @@
         </div>
 
         <div class="btn-row">
-          <button id="btnCap" class="primary">开启副屏</button>
+          <button id="btnCap" class="primary">开始投送</button>
           <button id="btnCapOff">关闭</button>
           <button id="btnCapPause">暂停</button>
         </div>
@@ -684,9 +669,8 @@
       <div class="panel">
         <h3>说明</h3>
         <div class="hint">
-          开启副屏会接管屏幕，主题推送自动暂停；关闭后约 2 秒回退到内置仪表盘。<br><br>
-          想要「真正扩展桌面」的体验，可装 Virtual Display Driver（winget 一条命令），
-          系统会多一块虚拟显示器，就能把任意窗口拖进去。
+          只投送选中的窗口，不投整个屏幕 —— 320×240 上把整块屏缩下来什么都看不清。<br><br>
+          选过的窗口会被记住：下次启动如果它还在运行，会自动接着投送；窗口关掉就自动停下。
         </div>
       </div>
     </div>
@@ -744,7 +728,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
     </svg>
-    <span>副屏</span>
+    <span>投送</span>
   </button>
   <div class="dock-divider"></div>
   <button class="dock-item" data-page="settings">
@@ -1497,7 +1481,7 @@ function switchPage(name, fromHash){
     try{ localStorage.setItem('coolleo_page', name); }catch(e){}
   }
   if(name==='editor'){ renderFrame(); }
-  if(name==='mirror'){ loadDisplays(); loadWindows(); }
+  if(name==='mirror'){ loadSavedCap(); loadWindows(); }
 }
 
 // 从 URL hash 恢复页面（刷新 / 直接打开带 #editor 的链接）
@@ -2614,13 +2598,13 @@ function applyState(s){
 
   if(capture && pushing){
     clearInterval(pushTimer); pushTimer=null; pushing=false;
-    log('warn','副屏已接管屏幕，主题推送自动停止');
+    log('warn','投送已接管屏幕，主题推送自动停止');
   }
 
   if(!BUSY.has('btnConn')){ $('btnConn').disabled=open; $('btnConn').textContent='连接设备'; }
   if(!BUSY.has('btnDisc')){ $('btnDisc').disabled=!open; $('btnDisc').textContent='断开'; }
   if(!BUSY.has('btnRefresh')){ $('btnRefresh').textContent='刷新状态'; }
-  if(!BUSY.has('btnCap')){ $('btnCap').disabled=!open||capture; $('btnCap').textContent='开启副屏'; }
+  if(!BUSY.has('btnCap')){ $('btnCap').disabled=!open||capture; $('btnCap').textContent='开始投送'; }
   if(!BUSY.has('btnCapOff')){ $('btnCapOff').disabled=!capture; $('btnCapOff').textContent='关闭'; }
   if(!BUSY.has('btnCapPause')){
     $('btnCapPause').disabled=!capture;
@@ -2633,14 +2617,14 @@ function applyState(s){
   if(!BUSY.has('btnOnce')){ $('btnOnce').disabled=!open||capture; $('btnOnce').textContent='渲染一帧'; }
 
   const engine=s.dxgi?'DXGI':'GDI';
-  const modeText=s.captureMode===1?'窗口':'显示器';
+  const modeText='窗口';
   $('capHint').className='hint'+(capture?' ok':'');
   $('capHint').textContent = !open ? '请先连接设备'
-    : capture ? `副屏运行中 · ${modeText} · ${engine}${s.paused?' · 已暂停':''} · 主题推送已暂停`
-    : (webPush ? '主题推送中，开启副屏会接管屏幕' : '副屏已关闭，当前显示内置仪表盘');
+    : capture ? `投送中 · ${modeText} · ${engine}${s.paused?' · 已暂停':''} · 主题推送已暂停`
+    : (webPush ? '主题推送中，开始投送会接管屏幕' : '投送已关闭，当前显示主题画面');
 
   $('homeHint').textContent = !open ? '设备未连接'
-    : capture ? '副屏接管中'
+    : capture ? '投送中'
     : webPush ? '正在推送你的主题'
     : '正在推送内置仪表盘';
   $('homeHint').className='hint'+((open&&(capture||webPush))?' ok':'');
@@ -2762,7 +2746,7 @@ $('btnPush').onclick = async () => {
   try{
     const st=await api('/api/status');
     if(!st||!st.open){ log('error','设备未连接'); return; }
-    if(st.capture){ log('error','副屏正在占用屏幕，请先关闭副屏'); applyState(st); return; }
+    if(st.capture){ log('error','投送正在占用屏幕，请先关闭投送'); applyState(st); return; }
     pushing=true;
     const fps=Math.max(1,Math.min(30,theme.canvas.fps||20));
     pushTimer=setInterval(pushOnce,1000/fps);
@@ -2772,19 +2756,12 @@ $('btnPush').onclick = async () => {
 
 $('btnOnce').onclick = () => pushOnce(true);
 
-// ==================== 副屏 ====================
-let displays=[], windowsList=[];
-async function loadDisplays(){
-  displays=(await api('/api/displays'))||[];
-  const sel=$('capDisplay'); if(!sel) return;
-  sel.innerHTML='';
-  if(!displays.length){ sel.innerHTML='<option value="">（无显示器）</option>'; return; }
-  displays.forEach(d=>{
-    const o=document.createElement('option');
-    o.value=String(d.index);
-    o.textContent=`${d.name}  ${d.width}x${d.height}${d.primary?' (主)':''}`;
-    sel.appendChild(o);
-  });
+// ==================== 窗口投送 ====================
+let windowsList=[];
+let savedCap=null;
+async function loadSavedCap(){
+  savedCap=await api('/api/capture/saved');
+  if(savedCap && savedCap.title) log('ok','上次投送：'+savedCap.title);
 }
 async function loadWindows(){
   windowsList=(await api('/api/windows'))||[];
@@ -2797,35 +2774,35 @@ async function loadWindows(){
     o.textContent=`${w.width}x${w.height}  ${w.title.slice(0,44)}`;
     sel.appendChild(o);
   });
+  // 尽量把上次投送的那个窗口选回来（类名 + 标题）
+  if(savedCap && (savedCap.title || savedCap.cls)){
+    let exact=null, byCls=null;
+    windowsList.forEach(w=>{
+      if(savedCap.cls && w.class!==savedCap.cls) return;
+      if(savedCap.title && w.title===savedCap.title && !exact) exact=w;
+      if(!byCls) byCls=w;
+    });
+    const pick=exact||byCls;
+    if(pick) sel.value=String(pick.hwnd);
+  }
 }
-$('capMode').onchange = () => {
-  const isWin=$('capMode').value==='window';
-  $('rowWindow').style.display=isWin?'':'none';
-  $('rowDisplay').style.display=isWin?'none':'';
-};
-$('btnRefreshDisp').onclick=loadDisplays;
 $('btnRefreshWin').onclick=loadWindows;
 
 $('btnCap').onclick = async () => {
-  const mode=$('capMode').value==='window'?1:0;
-  const body={enable:true,mode};
-  if(mode===1){
-    body.hwnd=Number($('capWindow').value)||0;
-    if(!body.hwnd){ log('error','请先选一个窗口'); return; }
-  } else body.monitor=Number($('capDisplay').value)||0;
-
+  const hwnd=Number($('capWindow').value)||0;
+  if(!hwnd){ log('error','请先选一个窗口'); return; }
   const t0=Date.now();
   setBusy('btnCap','启动中'); setBusy('btnCapOff'); setBusy('btnPush'); setBusy('btnOnce');
-  if(pushing){ clearInterval(pushTimer); pushTimer=null; pushing=false; log('ok','已停止主题推送，切换为副屏'); }
+  if(pushing){ clearInterval(pushTimer); pushTimer=null; pushing=false; log('ok','已停止主题推送，切换为投送'); }
   try{
     const fps=+$('capFps').value||20;
     await api('/api/fps',{method:'POST',body:JSON.stringify({fps})});
-    const r=await api('/api/capture',{method:'POST',body:JSON.stringify(body)});
-    if(r&&r.ok) log('ok',`副屏已开启（${mode===1?'窗口':'显示器'} · ${fps}fps）`);
+    const r=await api('/api/capture',{method:'POST',body:JSON.stringify({enable:true,mode:1,hwnd})});
+    if(r&&r.ok){ log('ok',`投送已开启（${fps}fps）`); loadSavedCap(); }
     else log('error','开启失败：'+((r&&(r.reason||r.error))||'未知'));
   } finally {
     await endBusy(t0,['btnCap','btnCapOff','btnPush','btnOnce'],
-                  ['开启副屏','关闭',undefined,'渲染一帧']);
+                  ['开始投送','关闭',undefined,'渲染一帧']);
   }
 };
 
@@ -2834,8 +2811,8 @@ $('btnCapOff').onclick = async () => {
   setBusy('btnCapOff','停止中'); setBusy('btnCap');
   try{
     await api('/api/capture',{method:'POST',body:JSON.stringify({enable:false})});
-    log('ok','副屏已关闭，2 秒后恢复内置仪表盘');
-  } finally { await endBusy(t0,['btnCapOff','btnCap'],['关闭','开启副屏']); }
+    log('ok','投送已关闭，2 秒后恢复主题画面');
+  } finally { await endBusy(t0,['btnCapOff','btnCap'],['关闭','开始投送']); }
 };
 
 $('btnCapPause').onclick = async () => {
@@ -2845,7 +2822,7 @@ $('btnCapPause').onclick = async () => {
   setBusy('btnCapPause','处理中');
   try{
     await api('/api/capture',{method:'POST',body:JSON.stringify({paused:!s.paused})});
-    log('ok', s.paused?'副屏已恢复':'副屏已暂停');
+    log('ok', s.paused?'投送已恢复':'投送已暂停');
   } finally { await endBusy(t0,['btnCapPause']); }
 };
 
@@ -3059,7 +3036,7 @@ async function ensureAutoSync(){
   const st = await api('/api/status');
   if(!st) return;
 
-  // 未连接 / 副屏占用 -> 暂停
+  // 未连接 / 投送占用 -> 暂停
   if(!st.open || st.capture){
     if(pushing){
       clearInterval(pushTimer); pushTimer=null; pushing=false;
@@ -3068,7 +3045,7 @@ async function ensureAutoSync(){
     return;
   }
 
-  // 已连接且没副屏 -> 保持推送循环在跑
+  // 已连接且没投送 -> 保持推送循环在跑
   if(!pushing){
     pushing = true;
     const fps = Math.max(1, Math.min(30, theme.canvas.fps || 20));
@@ -3970,7 +3947,7 @@ function bindLiveSync(){
     if(liveSyncOn){
       const st = await api('/api/status');
       if(!st || !st.open){ log('error','设备未连接，实时同步需要先连接设备'); cb.checked=false; liveSyncOn=false; return; }
-      if(st.capture){ log('error','副屏占用中，请先关闭副屏'); cb.checked=false; liveSyncOn=false; return; }
+      if(st.capture){ log('error','投送占用中，请先关闭投送'); cb.checked=false; liveSyncOn=false; return; }
       // 自动开启推送循环
       if(!pushing){
         pushing = true;
@@ -4062,7 +4039,7 @@ async function init(){
   renderFrame();
   pollMetrics();
   refreshStatus();
-  loadDisplays();
+  loadSavedCap();
   loadWindows();
   setInterval(pollMetrics,1000);
   setInterval(refreshStatus,1000);

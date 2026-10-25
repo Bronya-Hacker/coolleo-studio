@@ -75,6 +75,12 @@ std::atomic<bool> g_builtinEnabled{true};
 /** 副屏暂停（停止抓屏但保留 enable 与配置），恢复后立即继续 */
 std::atomic<bool> g_capturePaused{false};
 
+/** 上次投送的窗口（hwnd 每次启动都会变，所以记类名 + 标题来认回来） */
+std::string g_capSavedTitle;
+std::string g_capSavedClass;
+bool g_capSavedActive = false;
+std::mutex g_capSavedMutex;
+
 /** 网页推来的最后一帧（关掉浏览器后继续重发，保持画面） */
 std::vector<uint8_t> g_lastFrame;
 std::mutex g_lastFrameMutex;
@@ -325,6 +331,97 @@ uint64_t nowMs() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
              std::chrono::system_clock::now().time_since_epoch())
       .count();
+}
+
+// ------------------------------------------------------- 投送窗口的记忆
+std::string captureSavePath() {
+  char buf[MAX_PATH] = {0};
+  GetModuleFileNameA(nullptr, buf, MAX_PATH);
+  std::string exe(buf);
+  auto pos = exe.find_last_of("\\/");
+  std::string base = (pos == std::string::npos) ? std::string(".") : exe.substr(0, pos);
+  return base + "\\capture-window.json";
+}
+
+void saveCaptureSelection() {
+  std::string title, cls;
+  bool active;
+  {
+    std::lock_guard<std::mutex> lk(g_capSavedMutex);
+    title = g_capSavedTitle;
+    cls = g_capSavedClass;
+    active = g_capSavedActive;
+  }
+  std::string p = captureSavePath();
+  if (title.empty() && cls.empty()) {
+    remove(p.c_str());
+    return;
+  }
+  std::string json = "{\"title\":\"" + jsonEscape(title) + "\",\"cls\":\"" + jsonEscape(cls) +
+                     "\",\"active\":" + (active ? "true" : "false") + "}";
+  FILE* f = fopen(p.c_str(), "wb");
+  if (!f) return;
+  fwrite(json.data(), 1, json.size(), f);
+  fclose(f);
+}
+
+/** 按「类名 + 标题」把上次那个窗口认回来 */
+unsigned long long findSavedWindow() {
+  std::string title, cls;
+  {
+    std::lock_guard<std::mutex> lk(g_capSavedMutex);
+    title = g_capSavedTitle;
+    cls = g_capSavedClass;
+  }
+  if (title.empty() && cls.empty()) return 0;
+  auto list = coolleo::WindowCapture::enumerate();
+  unsigned long long byClass = 0;
+  for (const auto& w : list) {
+    if (!cls.empty() && w.className != cls) continue;
+    if (!title.empty() && w.title == title) return w.hwnd;   // 完全一致最优
+    if (!byClass) byClass = w.hwnd;                          // 同类的第一个兜底
+  }
+  return byClass;
+}
+
+/** 启动时调用：上次是开着的就自动接着投送 */
+void loadCaptureSelection() {
+  FILE* f = fopen(captureSavePath().c_str(), "rb");
+  if (!f) return;
+  char buf[2048] = {0};
+  size_t got = fread(buf, 1, sizeof(buf) - 1, f);
+  fclose(f);
+  std::string s(buf, got);
+
+  auto getStr = [&](const char* key) -> std::string {
+    std::string pat = std::string("\"") + key + "\":\"";
+    auto a = s.find(pat);
+    if (a == std::string::npos) return std::string();
+    a += pat.size();
+    auto b = s.find('"', a);
+    if (b == std::string::npos) return std::string();
+    return s.substr(a, b - a);
+  };
+
+  std::string title = getStr("title");
+  std::string cls = getStr("cls");
+  bool active = s.find("\"active\":true") != std::string::npos;
+  {
+    std::lock_guard<std::mutex> lk(g_capSavedMutex);
+    g_capSavedTitle = title;
+    g_capSavedClass = cls;
+    g_capSavedActive = active;
+  }
+  if (!active) return;
+  unsigned long long hwnd = findSavedWindow();
+  if (!hwnd) {
+    printf("[capture] saved window not found: %s\n", title.c_str());
+    return;
+  }
+  g_captureMode = 1;
+  g_captureWindow = hwnd;
+  g_captureEnabled = true;
+  printf("[capture] resume window: %s (hwnd %llu)\n", title.c_str(), hwnd);
 }
 
 // ---------------------------------------------------------------- HID 操作
@@ -929,6 +1026,22 @@ void handleApi(struct mg_connection* c, struct mg_http_message* hm) {
     return;
   }
 
+  if (uri == "/api/capture/saved") {
+    std::string title, cls;
+    bool active;
+    {
+      std::lock_guard<std::mutex> lk(g_capSavedMutex);
+      title = g_capSavedTitle;
+      cls = g_capSavedClass;
+      active = g_capSavedActive;
+    }
+    char buf[1400];
+    snprintf(buf, sizeof(buf), R"({"title":"%s","cls":"%s","active":%s})",
+             jsonEscape(title).c_str(), jsonEscape(cls).c_str(), active ? "true" : "false");
+    mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s", buf);
+    return;
+  }
+
   if (uri == "/api/capture") {
     // {"enable":true,"mode":0|1,"monitor":0,"hwnd":12345}
     // 区分「没传 enable」和「传了 false」：只改 paused 时不能把副屏关掉
@@ -951,6 +1064,38 @@ void handleApi(struct mg_connection* c, struct mg_http_message* hm) {
     if (mode >= 0 && mode <= 1) g_captureMode = static_cast<int>(mode);
     if (monitor >= 0) g_captureMonitor = static_cast<int>(monitor);
     if (hwnd > 0) g_captureWindow = static_cast<unsigned long long>(hwnd);
+
+    // 记住这次投送的窗口（下次启动自动接着投）
+    if (enable && mode == 1) {
+      bool found = false;
+      if (hwnd > 0) {
+        auto list = coolleo::WindowCapture::enumerate();
+        for (const auto& w : list) {
+          if (static_cast<long long>(w.hwnd) == hwnd) {
+            {
+              std::lock_guard<std::mutex> lk(g_capSavedMutex);
+              g_capSavedTitle = w.title;
+              g_capSavedClass = w.className;
+              g_capSavedActive = true;
+            }
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                      R"({"ok":false,"error":"window_gone","reason":"这个窗口已经关了，刷新列表重新选一个"})");
+        return;
+      }
+      saveCaptureSelection();
+    } else if (hasEnable && !enable) {
+      {
+        std::lock_guard<std::mutex> lk(g_capSavedMutex);
+        g_capSavedActive = false;
+      }
+      saveCaptureSelection();
+    }
 
     // 开启副屏：抢占推送权，立即让网页主题停推
     if (enable) {
@@ -1190,6 +1335,16 @@ void captureLoop() {
       unsigned long long hwnd = g_captureWindow.load();
       if (hwnd && coolleo::WindowCapture::isValid(hwnd)) {
         got = winCap.grabJpeg(hwnd, coolleo::SCREEN_WIDTH, coolleo::SCREEN_HEIGHT, jpeg);
+      } else if (hwnd) {
+        // 窗口被关掉了：自动停下，避免空转
+        g_captureEnabled = false;
+        {
+          std::lock_guard<std::mutex> lk(g_capSavedMutex);
+          g_capSavedActive = false;
+        }
+        saveCaptureSelection();
+        printf("[capture] window closed, stopped\n");
+        continue;
       }
     } else {
       // 显示器捕获（DXGI）：首次使用或切换显示器时才建会话
@@ -1258,7 +1413,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           LOWORD(lp) == WM_LBUTTONDBLCLK) {
         HMENU menu = CreatePopupMenu();
         AppendMenuW(menu, MF_STRING, 1, L"打开界面");
-        AppendMenuW(menu, MF_STRING, 2, L"副屏：开/关");
+        AppendMenuW(menu, MF_STRING, 2, L"投送窗口：开/关");
         AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenuW(menu, MF_STRING, 3, L"退出");
         SetMenuDefaultItem(menu, 1, FALSE);   // 回车落在「打开界面」，不会误退
@@ -1273,7 +1428,34 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         // 展开，光标位置正好压住最底下的「退出」。开菜单 300ms 内的选择一律忽略。
         if (GetTickCount64() - t0 < 300) sel = 0;
         if (sel == 1) openBrowser();
-        else if (sel == 2) g_captureEnabled = !g_captureEnabled.load();
+        else if (sel == 2) {
+          if (g_captureEnabled.load()) {
+            g_captureEnabled = false;
+            {
+              std::lock_guard<std::mutex> lk(g_capSavedMutex);
+              g_capSavedActive = false;
+            }
+            saveCaptureSelection();
+          } else if (!g_connected.load()) {
+            MessageBoxW(hwnd, L"设备还没连接。先打开界面连接设备。",
+                        L"Coolleo Studio", MB_OK | MB_ICONINFORMATION);
+          } else {
+            if (!g_captureWindow.load()) g_captureWindow = findSavedWindow();
+            if (!g_captureWindow.load()) {
+              MessageBoxW(hwnd, L"还没选过窗口。先打开界面，在「投送」页选一个窗口。",
+                          L"Coolleo Studio", MB_OK | MB_ICONINFORMATION);
+            } else {
+              g_captureMode = 1;
+              g_capturePaused = false;
+              g_captureEnabled = true;
+              {
+                std::lock_guard<std::mutex> lk(g_capSavedMutex);
+                g_capSavedActive = true;
+              }
+              saveCaptureSelection();
+            }
+          }
+        }
         else if (sel == 3) {
           if (MessageBoxW(hwnd, L"退出后小屏会在几十秒内变黑，确定退出？",
                           L"Coolleo Studio",
@@ -1382,6 +1564,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
   }
 
   loadThemeFromDisk();   // 恢复上次使用的主题（数据实时刷新）
+  loadCaptureSelection(); // 上次在投送窗口就自动接着投
   loadFrameFromDisk();   // 恢复上次的静态画面（主题文件缺失时兜底）
 
   std::thread capThread(captureLoop);
