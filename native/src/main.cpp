@@ -1261,15 +1261,26 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         AppendMenuW(menu, MF_STRING, 2, L"副屏：开/关");
         AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenuW(menu, MF_STRING, 3, L"退出");
+        SetMenuDefaultItem(menu, 1, FALSE);   // 回车落在「打开界面」，不会误退
 
         POINT pt;
         GetCursorPos(&pt);
         SetForegroundWindow(hwnd);
+        ULONGLONG t0 = GetTickCount64();
         int sel = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY, pt.x, pt.y, 0, hwnd, nullptr);
         DestroyMenu(menu);
+        // 双击托盘会先弹一次菜单，第二次点击落在刚弹出的菜单上；菜单在光标上方
+        // 展开，光标位置正好压住最底下的「退出」。开菜单 300ms 内的选择一律忽略。
+        if (GetTickCount64() - t0 < 300) sel = 0;
         if (sel == 1) openBrowser();
         else if (sel == 2) g_captureEnabled = !g_captureEnabled.load();
-        else if (sel == 3) PostQuitMessage(0);
+        else if (sel == 3) {
+          if (MessageBoxW(hwnd, L"退出后小屏会在几十秒内变黑，确定退出？",
+                          L"Coolleo Studio",
+                          MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
+            PostQuitMessage(0);
+          }
+        }
       }
       return 0;
 
